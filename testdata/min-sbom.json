@@ -1,0 +1,81 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "my-api",
+      "version": "1.0.0",
+      "purl": "pkg:npm/my-api@1.0.0"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "express",
+      "version": "4.18.0",
+      "purl": "pkg:npm/express@4.18.0"
+    },
+    {
+      "type": "library",
+      "name": "body-parser",
+      "version": "1.19.0",
+      "purl": "pkg:npm/body-parser@1.19.0"
+    },
+    {
+      "type": "library",
+      "name": "debug",
+      "version": "2.6.9",
+      "purl": "pkg:npm/debug@2.6.9"
+    },
+    {
+      "type": "library",
+      "name": "ms",
+      "version": "2.0.0",
+      "purl": "pkg:npm/ms@2.0.0"
+    },
+    {
+      "type": "library",
+      "name": "bytes",
+      "version": "3.1.0",
+      "purl": "pkg:npm/bytes@3.1.0"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:npm/my-api@1.0.0",
+      "dependsOn": [
+        "pkg:npm/express@4.18.0",
+        "pkg:npm/body-parser@1.19.0"
+      ]
+    },
+    {
+      "ref": "pkg:npm/express@4.18.0",
+      "dependsOn": [
+        "pkg:npm/debug@2.6.9",
+        "pkg:npm/bytes@3.1.0"
+      ]
+    },
+    {
+      "ref": "pkg:npm/body-parser@1.19.0",
+      "dependsOn": [
+        "pkg:npm/debug@2.6.9",
+        "pkg:npm/bytes@3.1.0"
+      ]
+    },
+    {
+      "ref": "pkg:npm/debug@2.6.9",
+      "dependsOn": [
+        "pkg:npm/ms@2.0.0"
+      ]
+    },
+    {
+      "ref": "pkg:npm/bytes@3.1.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/ms@2.0.0",
+      "dependsOn": []
+    }
+  ]
+}
