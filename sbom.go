@@ -1,0 +1,56 @@
+// The following code defines the primary SBOM (Software Bill of Materials) structure
+// and related types used for parsing and generating CycloneDX-compliant SBOM files.
+// These structures are annotated for JSON serialization and are used to represent
+// metadata, components, tools, licenses, and external references as part of the SBOM.
+
+package main
+
+// SBOM is the root object of the SBOM
+type SBOM struct {
+	BOMFormat   string `json:"bomFormat"`
+	SpecVersion string `json:"specVersion"`
+	// SerialNumber string   `json:"serialNumber"`
+	// Version  int8     `json:"version"`
+	Metadata     Metadata     `json:"metadata"`
+	Components   []Component  `json:"components"`
+	Dependencies []Dependency `json:"dependencies"`
+}
+
+// Metadata is the metadata object of the SBOM
+type Metadata struct {
+	// Timestamp string    `json:"timestamp"`
+	// Tools     []Tool    `json:"tools"`
+	Component Component `json:"component"`
+}
+
+// Tool is the tool object of the SBOM
+type Tool struct {
+	Vendor  string `json:"vendor"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+// Component is the component object of the SBOM
+type Component struct {
+	Type string `json:"type"`
+	// BOMRef             string              `json:"bom-ref"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	// Description        string              `json:"description"`
+	// Licenses           []string            `json:"licenses"`
+	PURL string `json:"purl"` // Package URL
+	// ExternalReferences []ExternalReference `json:"externalReferences"`
+}
+
+type Dependency struct {
+	Ref       string   `json:"ref"`
+	DependsOn []string `json:"dependsOn"`
+}
+
+// ExternalReference represents an external resource related to the component,
+// such as a website, issue tracker, or version control system URL that offers
+// additional information about the component.
+type ExternalReference struct {
+	Type string `json:"type"`
+	URL  string `json:"url"`
+}
