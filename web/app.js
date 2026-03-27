@@ -25,6 +25,12 @@ const PKG_ICON_PATH =
   "M0,-6 L9,-2 L9,6 L0,10 L-9,6 L-9,-2 Z M0,-6 L0,10 M-9,-2 L0,2 L9,-2";
 /** Nudge so the path’s geometric center (hexagon centroid ≈ (0,2)) sits on the node center. */
 const PKG_ICON_TRANSLATE = "translate(0,-2)";
+/** Must match `.links line` stroke-width in styles.css. */
+const LINK_STROKE_PX = 1.5;
+/** Must match `markerWidth` on `#depsee-arrow` (`markerUnits="strokeWidth"`). */
+const LINK_MARKER_W = 6;
+/** Base→tip length along the edge so the line stops at the arrow base, not the tip. */
+const LINK_ARROW_LEN = LINK_MARKER_W * LINK_STROKE_PX;
 const DOT_GUTTER = 6;
 const NODE_PAD_X = 12;
 const NODE_MAX_W = 320;
@@ -131,6 +137,39 @@ function prepareNodes(nodes) {
   }
 }
 
+/** Shorten link segment to node edges; line ends at arrow base (marker refX=0), not the tip. */
+function linkEndpoints(d) {
+  const sx = d.source.x;
+  const sy = d.source.y;
+  const tx = d.target.x;
+  const ty = d.target.y;
+  const dx = tx - sx;
+  const dy = ty - sy;
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-6) {
+    return { x1: sx, y1: sy, x2: tx, y2: ty };
+  }
+  const ux = dx / len;
+  const uy = dy / len;
+  const pad = DOT_R + 2;
+  const edgeTx = tx - ux * pad;
+  const edgeTy = ty - uy * pad;
+  let x1 = sx + ux * pad;
+  let y1 = sy + uy * pad;
+  let x2 = edgeTx - ux * LINK_ARROW_LEN;
+  let y2 = edgeTy - uy * LINK_ARROW_LEN;
+
+  const minSeg = 0.75;
+  if (Math.hypot(x2 - x1, y2 - y1) < minSeg) {
+    const shrink = Math.max(0, (len - LINK_ARROW_LEN) * 0.15);
+    x1 = sx + ux * shrink;
+    y1 = sy + uy * shrink;
+    x2 = tx - ux * (shrink + LINK_ARROW_LEN);
+    y2 = ty - uy * (shrink + LINK_ARROW_LEN);
+  }
+  return { x1, y1, x2, y2 };
+}
+
 function dragBehavior(simulation) {
   function dragstarted(event) {
     if (!event.active) simulation.alphaTarget(0.25).restart();
@@ -216,6 +255,20 @@ async function loadGraph() {
     .attr("r", 1.25)
     .attr("fill", "#30363d");
 
+  defs
+    .append("marker")
+    .attr("id", "depsee-arrow")
+    .attr("viewBox", "0 0 10 10")
+    .attr("refX", 0)
+    .attr("refY", 5)
+    .attr("markerWidth", LINK_MARKER_W)
+    .attr("markerHeight", LINK_MARKER_W)
+    .attr("orient", "auto")
+    .attr("markerUnits", "strokeWidth")
+    .append("path")
+    .attr("class", "link-arrow-head")
+    .attr("d", "M0,0 L10,5 L0,10 Z");
+
   const g = svg.append("g");
 
   const gridExtent = 4e6;
@@ -282,7 +335,8 @@ async function loadGraph() {
     .attr("class", "links")
     .selectAll("line")
     .data(links)
-    .join("line");
+    .join("line")
+    .attr("marker-end", "url(#depsee-arrow)");
 
   const node = g
     .append("g")
@@ -337,11 +391,10 @@ async function loadGraph() {
   });
 
   simulation.on("tick", () => {
-    link
-      .attr("x1", (d) => d.source.x)
-      .attr("y1", (d) => d.source.y)
-      .attr("x2", (d) => d.target.x)
-      .attr("y2", (d) => d.target.y);
+    link.each(function (d) {
+      const { x1, y1, x2, y2 } = linkEndpoints(d);
+      d3.select(this).attr("x1", x1).attr("y1", y1).attr("x2", x2).attr("y2", y2);
+    });
 
     node.attr("transform", (d) => `translate(${d.x},${d.y})`);
   });
