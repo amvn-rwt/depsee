@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -28,7 +29,20 @@ func main() {
 	fmt.Printf("packages - found: %d \n", len(sbom.Components))
 	fmt.Println("--------------------------------")
 
-	for _, component := range sbom.Components {
-		fmt.Printf("package -> %s:%s \n", component.Name, component.Version)
+	// Build the adjacency list
+	adjacencyList := buildAdjacencyList(sbom)
+
+	// Print the adjacency list
+	for pkg, dependencies := range adjacencyList {
+		fmt.Printf("%s -> %s \n", pkg, strings.Join(dependencies, " | "))
+		fmt.Println()
 	}
+}
+
+func buildAdjacencyList(sbom SBOM) map[string][]string {
+	adjacencyList := make(map[string][]string)
+	for _, dependency := range sbom.Dependencies {
+		adjacencyList[dependency.Ref] = dependency.DependsOn
+	}
+	return adjacencyList
 }
