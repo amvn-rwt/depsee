@@ -17,12 +17,15 @@ type ParsedPURL struct {
 // ParsePURL parses a Package URL (scheme pkg:). Qualifiers and subpath are ignored.
 func ParsePURL(raw string) (ParsedPURL, error) {
 	s := strings.TrimSpace(raw)
+
 	if s == "" {
 		return ParsedPURL{}, fmt.Errorf("empty purl")
 	}
+
 	if !strings.HasPrefix(s, "pkg:") {
 		return ParsedPURL{}, fmt.Errorf("purl must start with pkg:")
 	}
+
 	rest := s[4:]
 	if i := strings.IndexAny(rest, "?#"); i >= 0 {
 		rest = rest[:i]
@@ -34,12 +37,14 @@ func ParsePURL(raw string) (ParsedPURL, error) {
 		rest = rest[:at]
 	}
 
-	slash := strings.Index(rest, "/")
-	if slash < 0 {
+	before, after, found := strings.Cut(rest, "/")
+	if !found {
 		return ParsedPURL{Type: rest, Version: version}, nil
 	}
-	typ := rest[:slash]
-	path := rest[slash+1:]
+
+	typ := before
+	path := after
+
 	if path == "" {
 		return ParsedPURL{Type: typ, Version: version}, nil
 	}
@@ -52,6 +57,7 @@ func ParsePURL(raw string) (ParsedPURL, error) {
 		namespace = path[:lastSlash]
 		name = path[lastSlash+1:]
 	}
+
 	return ParsedPURL{
 		Type:      typ,
 		Namespace: namespace,
@@ -64,13 +70,16 @@ func ParsePURL(raw string) (ParsedPURL, error) {
 func (p ParsedPURL) ProductNameForCPE() string {
 	ns := strings.TrimSpace(p.Namespace)
 	nm := strings.TrimSpace(p.Name)
+
 	if ns == "" {
 		return nm
 	}
+
 	// Strip leading @ from scope for readability; CPE escaping handles the rest.
 	ns = strings.TrimPrefix(ns, "@")
 	if ns == "" {
 		return nm
 	}
+
 	return ns + "/" + nm
 }
