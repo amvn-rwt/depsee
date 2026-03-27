@@ -115,9 +115,17 @@ async function loadGraph() {
     zoomLevel.textContent = `${Math.round(k * 100)}%`;
   }
 
+  function clearPanCursor() {
+    svg.classed("panning", false);
+  }
+
   const zoom = d3
     .zoom()
     .scaleExtent([0.15, 8])
+    .filter((event) => {
+      if (event.target?.closest?.(".nodes")) return false;
+      return (!event.ctrlKey || event.type === "wheel") && !event.button;
+    })
     .on("zoom", (event) => {
       g.attr("transform", event.transform);
       setZoomLabel(event.transform.k);
@@ -125,6 +133,23 @@ async function loadGraph() {
 
   svg.call(zoom);
   setZoomLabel(1);
+
+  svg.on("mousedown.panCursor", (event) => {
+    if (event.button !== 0) return;
+    if (event.target?.closest?.(".nodes")) return;
+    svg.classed("panning", true);
+  });
+
+  svg.on("touchstart.panCursor", (event) => {
+    if (event.touches.length !== 1) return;
+    if (event.target?.closest?.(".nodes")) return;
+    svg.classed("panning", true);
+  });
+
+  d3.select(window)
+    .on("mouseup.depseePanCursor", clearPanCursor)
+    .on("touchend.depseePanCursor touchcancel.depseePanCursor", clearPanCursor)
+    .on("blur.depseePanCursor", clearPanCursor);
 
   function size() {
     const r = container.getBoundingClientRect();

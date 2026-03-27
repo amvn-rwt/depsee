@@ -62,6 +62,13 @@ body {
   display: block;
   width: 100%;
   height: 100%;
+  cursor: default;
+}
+
+/* Open hand only while dragging the canvas (see app.js .panning). */
+#graph svg.panning,
+#graph svg.panning * {
+  cursor: grabbing !important;
 }
 
 .graph-bg {
