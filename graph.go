@@ -14,9 +14,11 @@ type Graph struct {
 
 // GraphNode is one vertex in the dependency graph (ref = stable id).
 type GraphNode struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
-	Type  string `json:"type"`
+	ID      string `json:"id"`
+	Label   string `json:"label"`
+	Type    string `json:"type"`
+	Name    string `json:"name,omitempty"`
+	Version string `json:"version,omitempty"`
 }
 
 // GraphLink is a directed edge: dependent (source) → dependency (target).
@@ -66,8 +68,19 @@ func BuildGraph(s *SBOM) *Graph {
 	for _, id := range ids {
 		n := GraphNode{ID: id, Label: id}
 		if c, ok := refToComp[id]; ok {
-			n.Label = fmt.Sprintf("%s@%s", c.Name, c.Version)
 			n.Type = c.Type
+			n.Name = strings.TrimSpace(c.Name)
+			n.Version = strings.TrimSpace(c.Version)
+			switch {
+			case n.Name != "" && n.Version != "":
+				n.Label = fmt.Sprintf("%s@%s", n.Name, n.Version)
+			case n.Name != "":
+				n.Label = n.Name
+			case n.Version != "":
+				n.Label = n.Version
+			default:
+				n.Label = id
+			}
 		}
 		nodes = append(nodes, n)
 	}
