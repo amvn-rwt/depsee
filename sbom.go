@@ -1,9 +1,9 @@
-// The following code defines the primary SBOM (Software Bill of Materials) structure
-// and related types used for parsing and generating CycloneDX-compliant SBOM files.
-// These structures are annotated for JSON serialization and are used to represent
-// metadata, components, tools, licenses, and external references as part of the SBOM.
-
 package main
+
+import (
+	"encoding/json"
+	"os"
+)
 
 // SBOM is the root object of the SBOM
 type SBOM struct {
@@ -53,4 +53,28 @@ type Dependency struct {
 type ExternalReference struct {
 	Type string `json:"type"`
 	URL  string `json:"url"`
+}
+
+// LoadSBOM reads and decodes a CycloneDX JSON file from disk.
+func LoadSBOM(path string) (*SBOM, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var s SBOM
+	if err := json.NewDecoder(f).Decode(&s); err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+// AdjacencyList maps each dependency ref to the components it depends on.
+func AdjacencyList(s *SBOM) map[string][]string {
+	out := make(map[string][]string, len(s.Dependencies))
+	for _, d := range s.Dependencies {
+		out[d.Ref] = d.DependsOn
+	}
+	return out
 }
