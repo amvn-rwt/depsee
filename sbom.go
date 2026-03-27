@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"strings"
 )
 
 // SBOM is the root object of the SBOM
@@ -32,8 +33,8 @@ type Tool struct {
 
 // Component is the component object of the SBOM
 type Component struct {
-	Type string `json:"type"`
-	// BOMRef             string              `json:"bom-ref"`
+	Type    string `json:"type"`
+	BOMRef  string `json:"bom-ref"`
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	// Description        string              `json:"description"`
@@ -68,6 +69,14 @@ func LoadSBOM(path string) (*SBOM, error) {
 		return nil, err
 	}
 	return &s, nil
+}
+
+// Ref returns the canonical dependency-graph id: bom-ref if set, otherwise purl.
+func (c Component) Ref() string {
+	if s := strings.TrimSpace(c.BOMRef); s != "" {
+		return s
+	}
+	return strings.TrimSpace(c.PURL)
 }
 
 // AdjacencyList maps each dependency ref to the components it depends on.

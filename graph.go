@@ -82,6 +82,7 @@ func BuildGraph(s *SBOM) *Graph {
 	return &Graph{Nodes: nodes, Links: links}
 }
 
+// indexComponents maps each component's BOMRef to its Component struct.
 func indexComponents(s *SBOM) map[string]Component {
 	out := make(map[string]Component)
 	if ref := s.Metadata.Component.Ref(); ref != "" {

@@ -10,11 +10,11 @@ import (
 func main() {
 	serve := flag.Bool("serve", false, "serve web UI over HTTP")
 	addr := flag.String("addr", ":8080", "HTTP listen address (with -serve)")
-	file := flag.String("file", "testdata/sbom.json", "path to CycloneDX SBOM JSON")
+	file := flag.String("file", "testdata/min-sbom.json", "path to CycloneDX SBOM JSON")
 	flag.Parse()
 
 	if *serve {
-		runWebServer(*addr)
+		runWebServer(*addr, *file)
 		return
 	}
 
