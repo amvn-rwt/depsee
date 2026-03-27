@@ -84,6 +84,14 @@ body {
   cursor: grabbing;
 }
 
+.nodes .node-pkg-icon {
+  pointer-events: none;
+  stroke: rgba(255, 255, 255, 0.88);
+  stroke-width: 1.65px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .nodes .node-label {
   pointer-events: none;
 }

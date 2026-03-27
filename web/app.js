@@ -19,6 +19,12 @@ function colorScale(types) {
 
 /** Visual anchor: same size as the original graph dots. */
 const DOT_R = 20;
+
+/** Generic package/box glyph; centroid at (0,0) after PKG_ICON_TRANSLATE. */
+const PKG_ICON_PATH =
+  "M0,-6 L9,-2 L9,6 L0,10 L-9,6 L-9,-2 Z M0,-6 L0,10 M-9,-2 L0,2 L9,-2";
+/** Nudge so the path’s geometric center (hexagon centroid ≈ (0,2)) sits on the node center. */
+const PKG_ICON_TRANSLATE = "translate(0,-2)";
 const DOT_GUTTER = 6;
 const NODE_PAD_X = 12;
 const NODE_MAX_W = 320;
@@ -296,6 +302,13 @@ async function loadGraph() {
       const t = d.type && String(d.type).trim();
       return t ? fill(t) : "#6e7681";
     });
+
+  node
+    .append("path")
+    .attr("class", "node-pkg-icon")
+    .attr("transform", PKG_ICON_TRANSLATE)
+    .attr("d", PKG_ICON_PATH)
+    .attr("fill", "none");
 
   node.each(function (d) {
     const x0 = -d._textBlockW / 2;
