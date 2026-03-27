@@ -78,22 +78,53 @@ async function loadGraph() {
   const types = uniqueTypes(nodes);
   const fill = colorScale(types);
 
+  const zoomLevel = document.getElementById("zoom-level");
+
   const svg = d3
     .select(container)
     .append("svg")
     .attr("role", "img")
     .attr("aria-label", "Dependency graph");
 
+  const defs = svg.append("defs");
+  const dotStep = 20;
+  defs
+    .append("pattern")
+    .attr("id", "depsee-dot-grid")
+    .attr("width", dotStep)
+    .attr("height", dotStep)
+    .attr("patternUnits", "userSpaceOnUse")
+    .append("circle")
+    .attr("cx", dotStep / 2)
+    .attr("cy", dotStep / 2)
+    .attr("r", 1.25)
+    .attr("fill", "#30363d");
+
   const g = svg.append("g");
+
+  const gridExtent = 4e6;
+  g.append("rect")
+    .attr("class", "graph-bg")
+    .attr("x", -gridExtent / 2)
+    .attr("y", -gridExtent / 2)
+    .attr("width", gridExtent)
+    .attr("height", gridExtent)
+    .attr("fill", "url(#depsee-dot-grid)");
+
+  function setZoomLabel(k) {
+    zoomLevel.textContent = `${Math.round(k * 100)}%`;
+  }
 
   const zoom = d3
     .zoom()
     .scaleExtent([0.15, 8])
     .on("zoom", (event) => {
       g.attr("transform", event.transform);
+      setZoomLabel(event.transform.k);
     });
 
   svg.call(zoom);
+  setZoomLabel(1);
 
   function size() {
     const r = container.getBoundingClientRect();
