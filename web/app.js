@@ -17,6 +17,111 @@ function colorScale(types) {
   return d3.scaleOrdinal(types, scheme);
 }
 
+/** Visual anchor: same size as the original graph dots. */
+const DOT_R = 7;
+const DOT_GUTTER = 6;
+const NODE_PAD_X = 12;
+const NODE_MAX_W = 320;
+/** Padding from bottom of the node bbox to the last text baseline. */
+const NODE_PAD_BOTTOM = 4;
+/** Baseline step between the two lines (px, matches ~1.15em @ 11px). */
+const NODE_LINE_STEP = 13;
+
+const FONT_K11 = '500 11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+const FONT_V11 = '600 11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+const FONT_K10 = '500 10px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+const FONT_V10 = '400 10px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+
+const PKG_PREFIX = "package: ";
+const VER_PREFIX = "version: ";
+
+function measureContext() {
+  if (!measureContext._ctx) {
+    const c = document.createElement("canvas");
+    measureContext._ctx = c.getContext("2d");
+  }
+  return measureContext._ctx;
+}
+
+function truncateToFit(ctx, font, str, maxWidth) {
+  if (str == null || str === "") return "";
+  const s = String(str);
+  ctx.font = font;
+  if (ctx.measureText(s).width <= maxWidth) return s;
+  const ell = "\u2026";
+  if (ctx.measureText(ell).width > maxWidth) return ell;
+  let lo = 0;
+  let hi = s.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    const candidate = s.slice(0, mid) + ell;
+    if (ctx.measureText(candidate).width <= maxWidth) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo > 0 ? s.slice(0, lo) + ell : ell;
+}
+
+function measurePrefixValueWidth(ctx, prefix, pFont, value, vFont) {
+  ctx.font = pFont;
+  const wp = ctx.measureText(prefix).width;
+  ctx.font = vFont;
+  const wv = ctx.measureText(value).width;
+  return wp + wv;
+}
+
+/** Attaches _pkgVal, _verVal, _textBlockW, _bboxW, _bboxH for layout and collision. */
+function prepareNodes(nodes) {
+  const ctx = measureContext();
+  const innerMax = NODE_MAX_W - NODE_PAD_X * 2;
+
+  for (const d of nodes) {
+    const name = d.name && String(d.name).trim();
+    const ver = d.version && String(d.version).trim();
+    let rawPkg;
+    let rawVer;
+    if (name) {
+      rawPkg = name;
+      rawVer = ver || "\u2014";
+    } else {
+      rawPkg = String(d.label || d.id || "");
+      rawVer = "\u2014";
+    }
+    if (rawPkg.length > 256) rawPkg = rawPkg.slice(0, 256);
+
+    ctx.font = FONT_K11;
+    const prefixW = ctx.measureText(PKG_PREFIX).width;
+    const maxValW = Math.max(0, innerMax - prefixW);
+    const pkgVal = truncateToFit(ctx, FONT_V11, rawPkg, maxValW);
+
+    ctx.font = FONT_K10;
+    const prefixVerW = ctx.measureText(VER_PREFIX).width;
+    const maxVerValW = Math.max(0, innerMax - prefixVerW);
+    const verVal = truncateToFit(ctx, FONT_V10, rawVer, maxVerValW);
+
+    d._pkgVal = pkgVal;
+    d._verVal = verVal;
+
+    const w1 = measurePrefixValueWidth(
+      ctx,
+      PKG_PREFIX,
+      FONT_K11,
+      pkgVal,
+      FONT_V11
+    );
+    const w2 = measurePrefixValueWidth(
+      ctx,
+      VER_PREFIX,
+      FONT_K10,
+      verVal,
+      FONT_V10
+    );
+    d._textBlockW = Math.max(w1, w2);
+    const textStackH = NODE_LINE_STEP * 2 + 6;
+    d._bboxH = 2 * DOT_R + DOT_GUTTER + textStackH + NODE_PAD_BOTTOM;
+    d._bboxW = Math.max(Math.ceil(d._textBlockW), 2 * DOT_R);
+  }
+}
+
 function dragBehavior(simulation) {
   function dragstarted(event) {
     if (!event.active) simulation.alphaTarget(0.25).restart();
@@ -62,6 +167,8 @@ async function loadGraph() {
 
   const nodes = data.nodes || [];
   const links = data.links || [];
+
+  prepareNodes(nodes);
 
   status.textContent = `${nodes.length} nodes · ${links.length} links`;
 
@@ -149,12 +256,15 @@ async function loadGraph() {
       d3
         .forceLink(links)
         .id((d) => d.id)
-        .distance(64)
+        .distance(96)
         .strength(0.35)
     )
-    .force("charge", d3.forceManyBody().strength(-220))
+    .force("charge", d3.forceManyBody().strength(-280))
     .force("center", d3.forceCenter(w / 2, h / 2))
-    .force("collision", d3.forceCollide().radius(28));
+    .force(
+      "collision",
+      d3.forceCollide().radius((d) => Math.hypot(d._bboxW / 2, d._bboxH / 2) + 8)
+    );
 
   const link = g
     .append("g")
@@ -171,16 +281,42 @@ async function loadGraph() {
     .join("g")
     .call(dragBehavior(simulation));
 
-  node.append("circle").attr("r", 7).attr("fill", (d) => {
-    const t = d.type && String(d.type).trim();
-    return t ? fill(t) : "#6e7681";
-  });
-
   node
-    .append("text")
-    .attr("dx", 10)
-    .attr("dy", 4)
-    .text((d) => d.label || d.id);
+    .append("circle")
+    .attr("class", "node-dot")
+    .attr("r", DOT_R)
+    .attr("cx", 0)
+    .attr("cy", (d) => -d._bboxH / 2 + DOT_R)
+    .attr("fill", (d) => {
+      const t = d.type && String(d.type).trim();
+      return t ? fill(t) : "#6e7681";
+    });
+
+  node.each(function (d) {
+    const x0 = -d._textBlockW / 2;
+    const y2 = d._bboxH / 2 - NODE_PAD_BOTTOM;
+    const y1 = y2 - NODE_LINE_STEP;
+
+    const text = d3
+      .select(this)
+      .append("text")
+      .attr("class", "node-label");
+
+    text
+      .append("tspan")
+      .attr("x", x0)
+      .attr("y", y1)
+      .attr("class", "node-k")
+      .text(PKG_PREFIX);
+    text.append("tspan").attr("class", "node-v-name").text(d._pkgVal);
+    text
+      .append("tspan")
+      .attr("x", x0)
+      .attr("dy", "1.15em")
+      .attr("class", "node-k-ver")
+      .text(VER_PREFIX);
+    text.append("tspan").attr("class", "node-v-ver").text(d._verVal);
+  });
 
   simulation.on("tick", () => {
     link

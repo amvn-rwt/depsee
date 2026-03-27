@@ -74,21 +74,42 @@ body {
   stroke-opacity: 0.85;
 }
 
-.nodes circle {
+.nodes .node-dot {
   stroke: #0f1419;
   stroke-width: 1.5px;
   cursor: grab;
 }
 
-.nodes circle:active {
+.nodes .node-dot:active {
   cursor: grabbing;
 }
 
-.nodes text {
-  font-size: 11px;
-  fill: #c9d1d9;
+.nodes .node-label {
   pointer-events: none;
-  text-shadow: 0 0 4px #0f1419, 0 0 8px #0f1419;
+}
+
+.nodes .node-k {
+  font-size: 11px;
+  font-weight: 500;
+  fill: #8b949e;
+}
+
+.nodes .node-k-ver {
+  font-size: 10px;
+  font-weight: 500;
+  fill: #8b949e;
+}
+
+.nodes .node-v-name {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #e6edf3;
+}
+
+.nodes .node-v-ver {
+  font-size: 10px;
+  font-weight: 400;
+  fill: #c9d1d9;
 }
 
 .empty-state {
