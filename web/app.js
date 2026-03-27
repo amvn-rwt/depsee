@@ -18,7 +18,7 @@ function colorScale(types) {
 }
 
 /** Visual anchor: same size as the original graph dots. */
-const DOT_R = 7;
+const DOT_R = 20;
 const DOT_GUTTER = 6;
 const NODE_PAD_X = 12;
 const NODE_MAX_W = 320;
@@ -119,6 +119,9 @@ function prepareNodes(nodes) {
     const textStackH = NODE_LINE_STEP * 2 + 6;
     d._bboxH = 2 * DOT_R + DOT_GUTTER + textStackH + NODE_PAD_BOTTOM;
     d._bboxW = Math.max(Math.ceil(d._textBlockW), 2 * DOT_R);
+    /** Bottom edge of label bbox (y) when circle center is at origin. */
+    d._bboxBottomY =
+      DOT_R + DOT_GUTTER + textStackH + NODE_PAD_BOTTOM;
   }
 }
 
@@ -263,7 +266,9 @@ async function loadGraph() {
     .force("center", d3.forceCenter(w / 2, h / 2))
     .force(
       "collision",
-      d3.forceCollide().radius((d) => Math.hypot(d._bboxW / 2, d._bboxH / 2) + 8)
+      d3
+        .forceCollide()
+        .radius((d) => Math.hypot(d._bboxW / 2, d._bboxBottomY) + 8)
     );
 
   const link = g
@@ -286,7 +291,7 @@ async function loadGraph() {
     .attr("class", "node-dot")
     .attr("r", DOT_R)
     .attr("cx", 0)
-    .attr("cy", (d) => -d._bboxH / 2 + DOT_R)
+    .attr("cy", 0)
     .attr("fill", (d) => {
       const t = d.type && String(d.type).trim();
       return t ? fill(t) : "#6e7681";
@@ -294,7 +299,7 @@ async function loadGraph() {
 
   node.each(function (d) {
     const x0 = -d._textBlockW / 2;
-    const y2 = d._bboxH / 2 - NODE_PAD_BOTTOM;
+    const y2 = d._bboxBottomY - NODE_PAD_BOTTOM;
     const y1 = y2 - NODE_LINE_STEP;
 
     const text = d3
