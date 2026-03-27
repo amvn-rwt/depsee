@@ -1,0 +1,92 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #0f1419;
+  color: #e6edf3;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #30363d;
+  background: #161b22;
+  flex-shrink: 0;
+}
+
+.toolbar h1 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.status {
+  font-size: 0.85rem;
+  color: #8b949e;
+}
+
+.status.error {
+  color: #f85149;
+}
+
+#graph {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+#graph svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.links line {
+  stroke: #484f58;
+  stroke-width: 1.5px;
+  stroke-opacity: 0.85;
+}
+
+.nodes circle {
+  stroke: #0f1419;
+  stroke-width: 1.5px;
+  cursor: grab;
+}
+
+.nodes circle:active {
+  cursor: grabbing;
+}
+
+.nodes text {
+  font-size: 11px;
+  fill: #c9d1d9;
+  pointer-events: none;
+  text-shadow: 0 0 4px #0f1419, 0 0 8px #0f1419;
+}
+
+.empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8b949e;
+  font-size: 0.95rem;
+  pointer-events: none;
+}
