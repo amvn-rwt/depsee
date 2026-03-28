@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/amvn-rwt/depsee/internal/app"
 )
 
 func main() {
@@ -15,7 +17,7 @@ func main() {
 	flag.Parse()
 
 	if *serve {
-		runWebServer(*addr, *file, *skipNVD)
+		app.RunWebServer(*addr, *file, *skipNVD)
 		return
 	}
 
@@ -25,7 +27,7 @@ func main() {
 }
 
 func runCLI(sbomPath string) error {
-	sbom, err := LoadSBOM(sbomPath)
+	sbom, err := app.LoadSBOM(sbomPath)
 	if err != nil {
 		return err
 	}
@@ -35,7 +37,7 @@ func runCLI(sbomPath string) error {
 	fmt.Printf("packages - %d\n", len(sbom.Components))
 	fmt.Println("--------------------------------")
 
-	adj := AdjacencyList(sbom)
+	adj := app.AdjacencyList(sbom)
 	for ref, deps := range adj {
 		fmt.Printf("%s -> %s\n", ref, strings.Join(deps, " | "))
 		fmt.Println()

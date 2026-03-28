@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 //go:embed web
 var webFS embed.FS
 
-func runWebServer(addr, sbomPath string, skipNVD bool) {
+func RunWebServer(addr, sbomPath string, skipNVD bool) {
 	sbom, err := LoadSBOM(sbomPath)
 	if err != nil {
 		log.Fatalf("load SBOM %q: %v", sbomPath, err)

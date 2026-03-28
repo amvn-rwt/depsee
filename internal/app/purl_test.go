@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"testing"
@@ -6,41 +6,41 @@ import (
 
 func TestParsePURL(t *testing.T) {
 	tests := []struct {
-		raw              string
-		wantType         string
-		wantNamespace    string
-		wantName         string
-		wantVersion      string
-		wantErr          bool
+		raw               string
+		wantType          string
+		wantNamespace     string
+		wantName          string
+		wantVersion       string
+		wantErr           bool
 		wantProductForCPE string
 	}{
 		{
-			raw:              "pkg:npm/express@4.18.0",
-			wantType:         "npm",
-			wantNamespace:    "",
-			wantName:         "express",
-			wantVersion:      "4.18.0",
+			raw:               "pkg:npm/express@4.18.0",
+			wantType:          "npm",
+			wantNamespace:     "",
+			wantName:          "express",
+			wantVersion:       "4.18.0",
 			wantProductForCPE: "express",
 		},
 		{
-			raw:              "pkg:npm/@scope/pkg@1.0.0",
-			wantType:         "npm",
-			wantNamespace:    "@scope",
-			wantName:         "pkg",
-			wantVersion:      "1.0.0",
+			raw:               "pkg:npm/@scope/pkg@1.0.0",
+			wantType:          "npm",
+			wantNamespace:     "@scope",
+			wantName:          "pkg",
+			wantVersion:       "1.0.0",
 			wantProductForCPE: "scope/pkg",
 		},
 		{
-			raw:              "pkg:maven/org.apache.commons/commons-lang3@3.12.0",
-			wantType:         "maven",
-			wantNamespace:    "org.apache.commons",
-			wantName:         "commons-lang3",
-			wantVersion:      "3.12.0",
+			raw:               "pkg:maven/org.apache.commons/commons-lang3@3.12.0",
+			wantType:          "maven",
+			wantNamespace:     "org.apache.commons",
+			wantName:          "commons-lang3",
+			wantVersion:       "3.12.0",
 			wantProductForCPE: "org.apache.commons/commons-lang3",
 		},
 		{
-			raw:         "not-a-purl",
-			wantErr:     true,
+			raw:     "not-a-purl",
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
