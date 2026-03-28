@@ -12,6 +12,13 @@ type Graph struct {
 	Links []GraphLink `json:"links"`
 }
 
+// GraphCVE is one CVE attached to a node for the web UI.
+type GraphCVE struct {
+	ID           string  `json:"id"`
+	BaseScore    float64 `json:"baseScore,omitempty"`
+	BaseSeverity string  `json:"baseSeverity,omitempty"`
+}
+
 // GraphNode is one vertex in the dependency graph (ref = stable id).
 type GraphNode struct {
 	ID      string `json:"id"`
@@ -19,6 +26,17 @@ type GraphNode struct {
 	Type    string `json:"type"`
 	Name    string `json:"name,omitempty"`
 	Version string `json:"version,omitempty"`
+
+	MaxCvss            float64    `json:"maxCvss,omitempty"`
+	Severity           string     `json:"severity,omitempty"`
+	CVECount           int        `json:"cveCount,omitempty"`
+	CVEs               []GraphCVE `json:"cves,omitempty"`
+	BlastRadius        int        `json:"blastRadius,omitempty"`
+	DependentCount     int        `json:"dependentCount,omitempty"`
+	RiskScore          float64    `json:"riskScore,omitempty"`
+	TransitiveExposure bool       `json:"transitiveExposure,omitempty"`
+	VulnQueried        bool       `json:"vulnQueried,omitempty"`
+	VulnQueryError     bool       `json:"vulnQueryError,omitempty"`
 }
 
 // GraphLink is a directed edge: dependent (source) → dependency (target).
