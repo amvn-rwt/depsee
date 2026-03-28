@@ -13,7 +13,14 @@
         <span id="zoom-level" class="zoom-level" aria-live="polite">100%</span>
         <span id="status" class="status">Loading…</span>
       </header>
-      <div id="graph" aria-live="polite"></div>
+      <div class="main-row">
+        <div id="graph" aria-live="polite"></div>
+        <aside id="detail" class="detail-panel" aria-live="polite" hidden></aside>
+      </div>
+      <footer class="nvd-footer">
+        This product uses data from the NVD API but is not endorsed or certified
+        by the NVD.
+      </footer>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <script src="app.js"></script>

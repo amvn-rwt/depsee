@@ -1,20 +1,22 @@
 /* global d3 */
 
-function uniqueTypes(nodes) {
-  const set = new Set();
-  for (const n of nodes) {
-    const t = n.type && String(n.type).trim();
-    if (t) set.add(t);
-  }
-  return [...set].sort();
+/** Node fill from NVD severity / exposure (PRD: critical … clean / gray no data). */
+function severityFill(d) {
+  if (d.vulnQueryError) return "#8b949e";
+  const s = (d.severity || "").toUpperCase();
+  if (s === "CRITICAL") return "#f85149";
+  if (s === "HIGH") return "#f0883e";
+  if (s === "MEDIUM") return "#d29922";
+  if (s === "LOW") return "#9ece6a";
+  if (s === "NONE") return "#3fb950";
+  if (s === "EXPOSED") return "#58a6ff";
+  if (s === "UNKNOWN") return "#6e7681";
+  return "#6e7681";
 }
 
-function colorScale(types) {
-  const scheme = d3.schemeTableau10;
-  if (!types.length) {
-    return () => "#6e7681";
-  }
-  return d3.scaleOrdinal(types, scheme);
+function nodeRadius(d) {
+  const br = Number(d.blastRadius) || 0;
+  return DOT_R * (1 + Math.min(1.25, Math.sqrt(br) * 0.14));
 }
 
 /** Visual anchor: same size as the original graph dots. */
@@ -81,12 +83,14 @@ function measurePrefixValueWidth(ctx, prefix, pFont, value, vFont) {
   return wp + wv;
 }
 
-/** Attaches _pkgVal, _verVal, _textBlockW, _bboxW, _bboxH for layout and collision. */
+/** Attaches _r, _pkgVal, _verVal, _textBlockW, _bboxW, _bboxH for layout and collision. */
 function prepareNodes(nodes) {
   const ctx = measureContext();
   const innerMax = NODE_MAX_W - NODE_PAD_X * 2;
 
   for (const d of nodes) {
+    d._r = nodeRadius(d);
+    const r = d._r;
     const name = d.name && String(d.name).trim();
     const ver = d.version && String(d.version).trim();
     let rawPkg;
@@ -129,11 +133,10 @@ function prepareNodes(nodes) {
     );
     d._textBlockW = Math.max(w1, w2);
     const textStackH = NODE_LINE_STEP * 2 + 6;
-    d._bboxH = 2 * DOT_R + DOT_GUTTER + textStackH + NODE_PAD_BOTTOM;
-    d._bboxW = Math.max(Math.ceil(d._textBlockW), 2 * DOT_R);
+    d._bboxH = 2 * r + DOT_GUTTER + textStackH + NODE_PAD_BOTTOM;
+    d._bboxW = Math.max(Math.ceil(d._textBlockW), 2 * r);
     /** Bottom edge of label bbox (y) when circle center is at origin. */
-    d._bboxBottomY =
-      DOT_R + DOT_GUTTER + textStackH + NODE_PAD_BOTTOM;
+    d._bboxBottomY = r + DOT_GUTTER + textStackH + NODE_PAD_BOTTOM;
   }
 }
 
@@ -143,6 +146,8 @@ function linkEndpoints(d) {
   const sy = d.source.y;
   const tx = d.target.x;
   const ty = d.target.y;
+  const rs = d.source._r ?? DOT_R;
+  const rt = d.target._r ?? DOT_R;
   const dx = tx - sx;
   const dy = ty - sy;
   const len = Math.hypot(dx, dy);
@@ -151,9 +156,10 @@ function linkEndpoints(d) {
   }
   const ux = dx / len;
   const uy = dy / len;
-  const pad = DOT_R + 2;
-  const edgeTx = tx - ux * pad;
-  const edgeTy = ty - uy * pad;
+  const pad = rs + 2;
+  const padT = rt + 2;
+  const edgeTx = tx - ux * padT;
+  const edgeTy = ty - uy * padT;
   let x1 = sx + ux * pad;
   let y1 = sy + uy * pad;
   let x2 = edgeTx - ux * LINK_ARROW_LEN;
@@ -168,6 +174,60 @@ function linkEndpoints(d) {
     y2 = ty - uy * (shrink + LINK_ARROW_LEN);
   }
   return { x1, y1, x2, y2 };
+}
+
+function hideDetail() {
+  const panel = document.getElementById("detail");
+  if (!panel) return;
+  panel.hidden = true;
+  panel.innerHTML = "";
+}
+
+function showDetail(d) {
+  const panel = document.getElementById("detail");
+  if (!panel) return;
+  panel.hidden = false;
+  const esc = (s) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  const cves = Array.isArray(d.cves) ? d.cves : [];
+  const cveBlock =
+    cves.length === 0
+      ? '<p class="detail-meta">No CVE rows (clean or not queried).</p>'
+      : `<ul class="detail-cve-list">${cves
+          .map(
+            (c) =>
+              `<li><strong>${esc(c.id)}</strong> · CVSS ${esc(
+                c.baseScore ?? "\u2014"
+              )} ${esc(c.baseSeverity || "")}</li>`
+          )
+          .join("")}</ul>`;
+
+  panel.innerHTML = `
+    <button type="button" class="detail-close" aria-label="Close panel">\u00d7</button>
+    <h2>${esc(d.label || d.id)}</h2>
+    <dl class="detail-meta">
+      <dt>Severity</dt><dd>${esc(d.severity || "\u2014")}</dd>
+      <dt>CVEs</dt><dd>${esc(d.cveCount ?? 0)}</dd>
+      <dt>Max CVSS</dt><dd>${esc(d.maxCvss ?? "\u2014")}</dd>
+      <dt>Blast radius</dt><dd>${esc(d.blastRadius ?? 0)} dependents</dd>
+      <dt>Risk score</dt><dd>${esc(
+        d.riskScore != null && !Number.isNaN(d.riskScore)
+          ? d.riskScore.toFixed(1)
+          : "\u2014"
+      )}</dd>
+      <dt>Exposure</dt><dd>${
+        d.transitiveExposure
+          ? "Transitive (via dependency)"
+          : esc("\u2014")
+      }</dd>
+    </dl>
+    ${cveBlock}
+  `;
+  const btn = panel.querySelector(".detail-close");
+  if (btn) btn.addEventListener("click", hideDetail);
 }
 
 function dragBehavior(simulation) {
@@ -218,7 +278,8 @@ async function loadGraph() {
 
   prepareNodes(nodes);
 
-  status.textContent = `${nodes.length} nodes · ${links.length} links`;
+  const withCve = nodes.filter((n) => Number(n.cveCount) > 0).length;
+  status.textContent = `${nodes.length} nodes · ${links.length} links · ${withCve} with CVEs`;
 
   container.innerHTML = "";
 
@@ -229,9 +290,6 @@ async function loadGraph() {
     container.appendChild(empty);
     return;
   }
-
-  const types = uniqueTypes(nodes);
-  const fill = colorScale(types);
 
   const zoomLevel = document.getElementById("zoom-level");
 
@@ -303,6 +361,13 @@ async function loadGraph() {
   svg.call(zoom);
   setZoomLabel(1);
 
+  svg.on("click.backdrop", (event) => {
+    const t = event.target;
+    if (t && t.classList && t.classList.contains("graph-bg")) {
+      hideDetail();
+    }
+  });
+
   svg.on("mousedown.panCursor", (event) => {
     if (event.button !== 0) return;
     if (event.target?.closest?.(".nodes")) return;
@@ -369,18 +434,27 @@ async function loadGraph() {
     .selectAll("g")
     .data(nodes)
     .join("g")
-    .call(dragBehavior(simulation));
+    .call(dragBehavior(simulation))
+    .on("click", (event, d) => {
+      event.stopPropagation();
+      showDetail(d);
+    });
 
   node
     .append("circle")
     .attr("class", "node-dot")
-    .attr("r", DOT_R)
+    .attr("r", (d) => d._r)
     .attr("cx", 0)
     .attr("cy", 0)
-    .attr("fill", (d) => {
-      const t = d.type && String(d.type).trim();
-      return t ? fill(t) : "#6e7681";
-    });
+    .attr("fill", (d) => severityFill(d))
+    .attr("stroke", (d) => {
+      if (d.transitiveExposure) return "#58a6ff";
+      if (d.vulnQueryError) return "#f0883e";
+      return "#0f1419";
+    })
+    .attr("stroke-width", (d) =>
+      d.transitiveExposure || d.vulnQueryError ? 2.5 : 1.5
+    );
 
   node
     .append("path")
