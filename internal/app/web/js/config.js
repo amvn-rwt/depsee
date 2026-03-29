@@ -8,6 +8,12 @@ export const DOT_R = 20;
 /** Extra scale for CycloneDX metadata.component (root app) vs library nodes. */
 export const ROOT_DOT_SCALE = 1.22;
 
+/**
+ * Fill for root app when severity is unknown / missing (no NVD signal).
+ * Keeps CRITICAL…NONE / EXPOSED / vulnQueryError colors unchanged.
+ */
+export const ROOT_NODE_FILL = "#5c8bd6";
+
 /** Hex package glyph; centroid at (0,0) after PKG_ICON_TRANSLATE. */
 export const PKG_ICON_PATH =
   "M0,-6 L9,-2 L9,6 L0,10 L-9,6 L-9,-2 Z M0,-6 L0,10 M-9,-2 L0,2 L9,-2";
@@ -58,6 +64,9 @@ export function severityFill(d) {
   if (s === "LOW") return "#9ece6a";
   if (s === "NONE") return "#3fb950";
   if (s === "EXPOSED") return "#58a6ff";
+  if (d.rootComponent && (s === "UNKNOWN" || s === "")) {
+    return ROOT_NODE_FILL;
+  }
   if (s === "UNKNOWN") return "#6e7681";
   return "#6e7681";
 }
