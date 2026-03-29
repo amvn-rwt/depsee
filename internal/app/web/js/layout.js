@@ -2,6 +2,7 @@
  * Canvas text measurement and per-node layout fields for D3 collision and labels.
  */
 
+import { buildCvePipList } from "./cvePips.js";
 import {
   DOT_GUTTER,
   DOT_R,
@@ -110,6 +111,7 @@ export function prepareNodes(nodes) {
     d._bboxH = 2 * r + DOT_GUTTER + textStackH + NODE_PAD_BOTTOM;
     d._bboxW = Math.max(Math.ceil(d._textBlockW), 2 * r);
     d._bboxBottomY = r + DOT_GUTTER + textStackH + NODE_PAD_BOTTOM;
+    d._cvePips = buildCvePipList(d);
   }
 }
 

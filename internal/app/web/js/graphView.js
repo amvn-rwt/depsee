@@ -3,6 +3,12 @@
  */
 
 import {
+  CVE_PIP_ARC_HALF,
+  CVE_PIP_ORBIT,
+  CVE_PIP_R,
+  CVE_PIP_R_WIDE,
+} from "./cvePips.js";
+import {
   LINK_MARKER_W,
   NODE_LABEL_BG_ASC,
   NODE_LABEL_BG_DESC,
@@ -162,7 +168,13 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
       "collision",
       d3
         .forceCollide()
-        .radius((d) => Math.hypot(d._bboxW / 2, d._bboxBottomY) + 8)
+        .radius((d) => {
+          const halfX =
+            d._cvePips?.length > 0
+              ? Math.max(d._bboxW / 2, d._r + 14)
+              : d._bboxW / 2;
+          return Math.hypot(halfX, d._bboxBottomY) + 8;
+        })
     );
 
   const ro = new ResizeObserver(() => {
@@ -219,6 +231,38 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     )
     .attr("d", PKG_ICON_PATH)
     .attr("fill", "none");
+
+  node.each(function (d) {
+    const pips = d._cvePips;
+    if (!pips?.length) return;
+    const orbit = d._r + CVE_PIP_ORBIT;
+    const pipRoot = d3
+      .select(this)
+      .append("g")
+      .attr("class", "node-cve-pips")
+      .attr("pointer-events", "none");
+    const pipG = pipRoot
+      .selectAll("g")
+      .data(pips)
+      .join("g")
+      .attr("class", "node-cve-pip")
+      .attr("transform", (_, i) => {
+        const t = pips.length === 1 ? 0 : (i / (pips.length - 1)) * 2 - 1;
+        const theta = t * CVE_PIP_ARC_HALF;
+        return `translate(${Math.cos(theta) * orbit},${Math.sin(theta) * orbit})`;
+      });
+    pipG
+      .append("circle")
+      .attr("class", "node-cve-pip-disc")
+      .attr("r", (p) => (p.label.length > 1 ? CVE_PIP_R_WIDE : CVE_PIP_R))
+      .attr("fill", (p) => p.fill);
+    pipG
+      .append("text")
+      .attr("class", "node-cve-pip-num")
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "central")
+      .text((p) => p.label);
+  });
 
   node.each(function (d) {
     const x0 = -d._textBlockW / 2;

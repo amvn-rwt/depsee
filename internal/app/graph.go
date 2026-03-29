@@ -29,16 +29,17 @@ type GraphNode struct {
 	// RootComponent is true for metadata.component (the primary application in CycloneDX).
 	RootComponent bool `json:"rootComponent,omitempty"`
 
-	MaxCvss            float64    `json:"maxCvss,omitempty"`
-	Severity           string     `json:"severity,omitempty"`
-	CVECount           int        `json:"cveCount,omitempty"`
-	CVEs               []GraphCVE `json:"cves,omitempty"`
-	BlastRadius        int        `json:"blastRadius,omitempty"`
-	DependentCount     int        `json:"dependentCount,omitempty"`
-	RiskScore          float64    `json:"riskScore,omitempty"`
-	TransitiveExposure bool       `json:"transitiveExposure,omitempty"`
-	VulnQueried        bool       `json:"vulnQueried,omitempty"`
-	VulnQueryError     bool       `json:"vulnQueryError,omitempty"`
+	MaxCvss            float64        `json:"maxCvss,omitempty"`
+	Severity           string         `json:"severity,omitempty"`
+	CVECount           int            `json:"cveCount,omitempty"`
+	CveSeverityCounts  map[string]int `json:"cveSeverityCounts,omitempty"`
+	CVEs               []GraphCVE     `json:"cves,omitempty"`
+	BlastRadius        int            `json:"blastRadius,omitempty"`
+	DependentCount     int            `json:"dependentCount,omitempty"`
+	RiskScore          float64        `json:"riskScore,omitempty"`
+	TransitiveExposure bool           `json:"transitiveExposure,omitempty"`
+	VulnQueried        bool           `json:"vulnQueried,omitempty"`
+	VulnQueryError     bool           `json:"vulnQueryError,omitempty"`
 }
 
 // GraphLink is a directed edge: dependent (source) → dependency (target).

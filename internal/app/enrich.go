@@ -122,11 +122,26 @@ func EnrichGraph(ctx context.Context, sbom *SBOM, g *Graph, nvd *NVDClient) erro
 func fillNodeCVEs(n *GraphNode, cves []CVEEntry) {
 	var max float64
 	var maxSev string
+	counts := make(map[string]int)
 	for _, c := range cves {
 		if c.BaseScore > max {
 			max = c.BaseScore
 			maxSev = strings.TrimSpace(c.BaseSeverity)
 		}
+		s := strings.ToUpper(strings.TrimSpace(c.BaseSeverity))
+		if s == "MODERATE" {
+			s = "MEDIUM"
+		}
+		if s == "" {
+			s = severityFromScore(c.BaseScore)
+		}
+		switch s {
+		case "CRITICAL", "HIGH", "MEDIUM", "LOW":
+			counts[s]++
+		}
+	}
+	if len(counts) > 0 {
+		n.CveSeverityCounts = counts
 	}
 	n.MaxCvss = max
 	n.Severity = aggregateSeverity(cves, max, maxSev)
