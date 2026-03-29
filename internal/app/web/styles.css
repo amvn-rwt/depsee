@@ -29,6 +29,8 @@ body {
 .nvd-footer {
   flex-shrink: 0;
   padding: 0.35rem 1rem;
+  display: flex;
+  justify-content: space-between;
   font-size: 0.7rem;
   color: #6e768e;
   border-top: 1px solid #30363d;
@@ -153,7 +155,7 @@ body {
   cursor: default;
 }
 
-/* Open hand only while dragging the canvas (see app.js .panning). */
+/* Open hand only while dragging the canvas (see graphView.js .panning). */
 #graph svg.panning,
 #graph svg.panning * {
   cursor: grabbing !important;
