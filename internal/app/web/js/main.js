@@ -8,17 +8,21 @@ import { mountGraph } from "./graphView.js";
 import { prepareNodes } from "./layout.js";
 
 async function boot() {
+  // get the elements from the DOM
   const status = document.getElementById("status");
   const container = document.getElementById("graph");
   const zoomLevel = document.getElementById("zoom-level");
 
+  // if any of the elements are not found, return
   if (!status || !container || !zoomLevel) {
     return;
   }
 
+  // set the status to loading
   status.textContent = "Loading…";
   status.classList.remove("error");
 
+  // fetch the graph from the API
   let result;
   try {
     result = await fetchGraph();
@@ -28,22 +32,28 @@ async function boot() {
     return;
   }
 
+  // if the result is not ok, set the status to the HTTP status
   if (!result.ok) {
     status.textContent = `HTTP ${result.status}`;
     status.classList.add("error");
     return;
   }
 
+  // get the nodes and links from the result
   const nodes = result.data.nodes || [];
   const links = result.data.links || [];
 
+  // prepare the nodes
   prepareNodes(nodes);
 
+  // get the number of nodes with CVEs
   const withCve = nodes.filter((n) => Number(n.cveCount) > 0).length;
   status.textContent = `${nodes.length} nodes · ${links.length} links · ${withCve} with CVEs`;
 
+  // clear the container
   container.innerHTML = "";
 
+  // if there are no nodes, show the empty state
   if (nodes.length === 0) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
@@ -52,6 +62,7 @@ async function boot() {
     return;
   }
 
+  // mount the graph
   mountGraph(d3, {
     container,
     zoomLevelEl: zoomLevel,
