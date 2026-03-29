@@ -4,6 +4,10 @@
 
 import {
   LINK_MARKER_W,
+  NODE_LABEL_BG_ASC,
+  NODE_LABEL_BG_DESC,
+  NODE_LABEL_BG_PAD_X,
+  NODE_LABEL_BG_PAD_Y,
   NODE_LINE_STEP,
   NODE_PAD_BOTTOM,
   PKG_ICON_PATH,
@@ -215,6 +219,18 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     const x0 = -d._textBlockW / 2;
     const y2 = d._bboxBottomY - NODE_PAD_BOTTOM;
     const y1 = y2 - NODE_LINE_STEP;
+
+    const bgTop = y1 - NODE_LABEL_BG_ASC - NODE_LABEL_BG_PAD_Y;
+    const bgBottom = y2 + NODE_LABEL_BG_DESC + NODE_LABEL_BG_PAD_Y;
+    d3.select(this)
+      .append("rect")
+      .attr("class", "node-label-bg")
+      .attr("x", x0 - NODE_LABEL_BG_PAD_X)
+      .attr("y", bgTop)
+      .attr("width", d._textBlockW + 2 * NODE_LABEL_BG_PAD_X)
+      .attr("height", bgBottom - bgTop)
+      .attr("rx", 2)
+      .attr("ry", 2);
 
     const text = d3
       .select(this)

@@ -25,6 +25,14 @@ export const NODE_MAX_W = 320;
 export const NODE_PAD_BOTTOM = 4;
 export const NODE_LINE_STEP = 13;
 
+/** Opaque rect behind the two-line node label (matches --graph-canvas-bg). */
+export const NODE_LABEL_BG_PAD_X = 4;
+export const NODE_LABEL_BG_PAD_Y = 3;
+/** Rough cap height above first-line baseline (11px label). */
+export const NODE_LABEL_BG_ASC = 11;
+/** Rough descender below second-line baseline (10px version line). */
+export const NODE_LABEL_BG_DESC = 4;
+
 export const FONT_K11 =
   '500 11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 export const FONT_V11 =
