@@ -26,6 +26,8 @@ type GraphNode struct {
 	Type    string `json:"type"`
 	Name    string `json:"name,omitempty"`
 	Version string `json:"version,omitempty"`
+	// RootComponent is true for metadata.component (the primary application in CycloneDX).
+	RootComponent bool `json:"rootComponent,omitempty"`
 
 	MaxCvss            float64    `json:"maxCvss,omitempty"`
 	Severity           string     `json:"severity,omitempty"`
@@ -82,9 +84,14 @@ func BuildGraph(s *SBOM) *Graph {
 	}
 	sort.Strings(ids)
 
+	rootRef := strings.TrimSpace(s.Metadata.Component.Ref())
+
 	nodes := make([]GraphNode, 0, len(ids))
 	for _, id := range ids {
 		n := GraphNode{ID: id, Label: id}
+		if rootRef != "" && id == rootRef {
+			n.RootComponent = true
+		}
 		if c, ok := refToComp[id]; ok {
 			n.Type = c.Type
 			n.Name = strings.TrimSpace(c.Name)

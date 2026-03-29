@@ -13,6 +13,7 @@ import {
   PKG_ICON_PATH,
   PKG_ICON_TRANSLATE,
   PKG_PREFIX,
+  ROOT_DOT_SCALE,
   VER_PREFIX,
   severityFill,
 } from "./config.js";
@@ -211,7 +212,11 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
   node
     .append("path")
     .attr("class", "node-pkg-icon")
-    .attr("transform", PKG_ICON_TRANSLATE)
+    .attr("transform", (d) =>
+      d.rootComponent
+        ? `${PKG_ICON_TRANSLATE} scale(${Math.sqrt(ROOT_DOT_SCALE).toFixed(3)})`
+        : PKG_ICON_TRANSLATE
+    )
     .attr("d", PKG_ICON_PATH)
     .attr("fill", "none");
 

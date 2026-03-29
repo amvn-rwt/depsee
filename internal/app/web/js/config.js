@@ -5,6 +5,9 @@
 
 export const DOT_R = 20;
 
+/** Extra scale for CycloneDX metadata.component (root app) vs library nodes. */
+export const ROOT_DOT_SCALE = 1.22;
+
 /** Hex package glyph; centroid at (0,0) after PKG_ICON_TRANSLATE. */
 export const PKG_ICON_PATH =
   "M0,-6 L9,-2 L9,6 L0,10 L-9,6 L-9,-2 Z M0,-6 L0,10 M-9,-2 L0,2 L9,-2";
@@ -61,5 +64,7 @@ export function severityFill(d) {
 
 export function nodeRadius(d) {
   const br = Number(d.blastRadius) || 0;
-  return DOT_R * (1 + Math.min(1.25, Math.sqrt(br) * 0.14));
+  const base =
+    DOT_R * (1 + Math.min(1.25, Math.sqrt(br) * 0.14));
+  return d.rootComponent ? base * ROOT_DOT_SCALE : base;
 }
