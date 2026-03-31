@@ -15,10 +15,12 @@
   <body>
     <div id="app">
       <header class="toolbar">
-        <h1>depsee</h1>
-        <div class="toolbar-end" role="group" aria-label="Toolbar actions">
+        <div class="toolbar-start" role="group" aria-label="Graph summary">
+          <h1>depsee</h1>
           <span id="zoom-level" class="zoom-level" aria-live="polite">100%</span>
           <span id="status" class="status">Loading…</span>
+        </div>
+        <div class="toolbar-upload-side">
           <input
             type="file"
             id="sbom-file"
