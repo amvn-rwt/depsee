@@ -7,6 +7,7 @@ package app
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"strings"
 )
@@ -61,6 +62,15 @@ type ExternalReference struct {
 	URL  string `json:"url"`
 }
 
+// DecodeSBOM decodes CycloneDX JSON from r.
+func DecodeSBOM(r io.Reader) (*SBOM, error) {
+	var s SBOM
+	if err := json.NewDecoder(r).Decode(&s); err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
 // LoadSBOM reads and decodes a CycloneDX JSON file from disk.
 func LoadSBOM(path string) (*SBOM, error) {
 	f, err := os.Open(path)
@@ -68,12 +78,7 @@ func LoadSBOM(path string) (*SBOM, error) {
 		return nil, err
 	}
 	defer f.Close()
-
-	var s SBOM
-	if err := json.NewDecoder(f).Decode(&s); err != nil {
-		return nil, err
-	}
-	return &s, nil
+	return DecodeSBOM(f)
 }
 
 // Ref returns the canonical dependency-graph id: bom-ref if set, otherwise purl.
