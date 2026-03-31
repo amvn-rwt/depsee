@@ -3,13 +3,60 @@
  */
 
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
-import { fetchGraph, postSbomFileWithProgress } from "./api.js";
+import { fetchGraph, pollSbomJob, postSbomFileWithProgress } from "./api.js";
 import { hideDetail } from "./detailPanel.js";
 import { mountGraph } from "./graphView.js";
 import { prepareNodes } from "./layout.js";
 
 const UPLOAD_RING_R = 26;
 const UPLOAD_RING_LEN = 2 * Math.PI * UPLOAD_RING_R;
+
+/** Fraction of the ring (0–1) reserved for the HTTP upload; the rest tracks server job progress. */
+const UPLOAD_SHARE = 0.42;
+
+/**
+ * Status line under the ring. `overallRingFraction` must match the stroke (0–1 of full circle).
+ * @param {string} phase
+ * @param {number} overallRingFraction
+ */
+function jobPhaseLabel(phase, overallRingFraction) {
+  const p = Math.round(Math.max(0, Math.min(1, overallRingFraction)) * 100);
+  switch (phase) {
+    case "queued":
+      return `Queued · ${p}%`;
+    case "parsing":
+      return `Parsing SBOM · ${p}%`;
+    case "building":
+      return `Building graph · ${p}%`;
+    case "enriching":
+      return `CVE lookup · ${p}%`;
+    case "aggregating":
+      return `Risk metrics · ${p}%`;
+    case "done":
+      return `${p}%`;
+    default:
+      return `Processing · ${p}%`;
+  }
+}
+
+/**
+ * Ring fill during HTTP upload (0 … {@link UPLOAD_SHARE}).
+ * @param {number} loaded
+ * @param {number} total
+ */
+function uploadRingFraction(loaded, total) {
+  if (total <= 0) return null;
+  return UPLOAD_SHARE * Math.min(1, loaded / total);
+}
+
+/**
+ * Ring fill during server job ( {@link UPLOAD_SHARE} … 1 ) from server percent 0–100.
+ * @param {number} jobPercent
+ */
+function jobRingFraction(jobPercent) {
+  const t = Math.min(1, Math.max(0, jobPercent / 100));
+  return UPLOAD_SHARE + (1 - UPLOAD_SHARE) * t;
+}
 
 function setRingDeterminate(ringFill, svg, fraction) {
   if (!ringFill || !svg) return;
@@ -44,6 +91,9 @@ function hideUploadOverlay(overlay, ringFill, svg) {
   ringFillClearStyles(ringFill);
 }
 
+/**
+ * @param {number | null} fraction null = indeterminate
+ */
 function updateUploadUI(overlay, ringFill, svg, label, fraction, text) {
   if (!overlay || !label) return;
   if (fraction == null) {
@@ -150,17 +200,20 @@ async function boot() {
     try {
       const up = await postSbomFileWithProgress(file, ({ loaded, total }) => {
         if (total > 0) {
-          const frac = loaded / total;
+          const frac = uploadRingFraction(loaded, total);
           const waiting = loaded >= total;
+          const line = waiting ? "Sending…" : `Uploading · ${Math.round(frac * 100)}%`;
+          status.textContent = line;
           updateUploadUI(
             uploadOverlay,
             uploadRingFill,
             uploadSvg,
             uploadLabel,
             frac,
-            waiting ? "Processing response…" : `${Math.round(frac * 100)}%`
+            line
           );
         } else {
+          status.textContent = "Uploading…";
           updateUploadUI(
             uploadOverlay,
             uploadRingFill,
@@ -177,11 +230,56 @@ async function boot() {
         status.classList.add("error");
         return;
       }
+
+      const jobId = up.jobId;
+      if (!jobId) {
+        status.textContent = "Upload failed · missing job id";
+        status.classList.add("error");
+        return;
+      }
+
+      // Upload finished; remainder of the ring tracks server job progress.
+      {
+        const frac = jobRingFraction(0);
+        const line = jobPhaseLabel("queued", frac);
+        status.textContent = line;
+        updateUploadUI(
+          uploadOverlay,
+          uploadRingFill,
+          uploadSvg,
+          uploadLabel,
+          frac,
+          line
+        );
+      }
+
+      const done = await pollSbomJob(jobId, {
+        onJobProgress: ({ phase, percent }) => {
+          const frac = jobRingFraction(percent);
+          const line = jobPhaseLabel(phase, frac);
+          status.textContent = line;
+          updateUploadUI(
+            uploadOverlay,
+            uploadRingFill,
+            uploadSvg,
+            uploadLabel,
+            frac,
+            line
+          );
+        },
+      });
+
+      if (!done.ok) {
+        status.textContent = `Processing failed · ${done.error ?? `HTTP ${done.status ?? ""}`}`.trim();
+        status.classList.add("error");
+        return;
+      }
+
       renderGraphFromData(d3, {
         status,
         container,
         zoomLevel,
-        data: up.data,
+        data: done.data,
       });
     } catch (e) {
       const msg = e instanceof Error && e.message === "aborted" ? "Upload cancelled" : "Upload failed (network)";

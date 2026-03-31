@@ -10,7 +10,37 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
+
+type jobCreatedResp struct {
+	JobID string `json:"jobId"`
+}
+
+func pollSBOMJob(t *testing.T, jobID string, maxWait time.Duration) SBOMJob {
+	t.Helper()
+	deadline := time.Now().Add(maxWait)
+	for time.Now().Before(deadline) {
+		req := httptest.NewRequest(http.MethodGet, "/api/jobs/"+jobID, nil)
+		req.SetPathValue("id", jobID)
+		rec := httptest.NewRecorder()
+		handleGetSBOMJob(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("GET job: status %d body %s", rec.Code, rec.Body.String())
+		}
+		var job SBOMJob
+		if err := json.NewDecoder(rec.Body).Decode(&job); err != nil {
+			t.Fatal(err)
+		}
+		switch job.Status {
+		case SBOMJobStatusCompleted, SBOMJobStatusFailed:
+			return job
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("job did not finish in time")
+	return SBOMJob{}
+}
 
 func TestHandlePostSBOM_JSON(t *testing.T) {
 	raw, err := os.ReadFile(filepath.Join("..", "..", "testdata", "min-sbom.json"))
@@ -23,15 +53,22 @@ func TestHandlePostSBOM_JSON(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handlePostSBOM(rec, req, true)
 
-	if rec.Code != http.StatusOK {
+	if rec.Code != http.StatusAccepted {
 		t.Fatalf("status %d, body %s", rec.Code, rec.Body.String())
 	}
-	var g Graph
-	if err := json.NewDecoder(rec.Body).Decode(&g); err != nil {
+	var created jobCreatedResp
+	if err := json.NewDecoder(rec.Body).Decode(&created); err != nil {
 		t.Fatal(err)
 	}
-	if len(g.Nodes) == 0 {
-		t.Fatal("expected nodes")
+	if created.JobID == "" {
+		t.Fatal("empty jobId")
+	}
+	job := pollSBOMJob(t, created.JobID, 2*time.Second)
+	if job.Status != SBOMJobStatusCompleted {
+		t.Fatalf("job failed: %+v", job)
+	}
+	if job.Graph == nil || len(job.Graph.Nodes) == 0 {
+		t.Fatal("expected graph nodes")
 	}
 }
 
@@ -59,8 +96,16 @@ func TestHandlePostSBOM_multipartFile(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handlePostSBOM(rec, req, true)
 
-	if rec.Code != http.StatusOK {
+	if rec.Code != http.StatusAccepted {
 		t.Fatalf("status %d, body %s", rec.Code, rec.Body.String())
+	}
+	var created jobCreatedResp
+	if err := json.NewDecoder(rec.Body).Decode(&created); err != nil {
+		t.Fatal(err)
+	}
+	job := pollSBOMJob(t, created.JobID, 2*time.Second)
+	if job.Status != SBOMJobStatusCompleted {
+		t.Fatalf("job failed: %+v", job)
 	}
 }
 
@@ -79,7 +124,28 @@ func TestHandlePostSBOM_invalidJSON(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	handlePostSBOM(rec, req, true)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("want 400, got %d: %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("want 202, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var created jobCreatedResp
+	if err := json.NewDecoder(rec.Body).Decode(&created); err != nil {
+		t.Fatal(err)
+	}
+	job := pollSBOMJob(t, created.JobID, 2*time.Second)
+	if job.Status != SBOMJobStatusFailed {
+		t.Fatalf("want failed job, got %+v", job)
+	}
+	if job.Error == "" {
+		t.Fatal("expected error message")
+	}
+}
+
+func TestHandleGetSBOMJob_notFound(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/jobs/nope", nil)
+	req.SetPathValue("id", "nope")
+	rec := httptest.NewRecorder()
+	handleGetSBOMJob(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("want 404, got %d", rec.Code)
 	}
 }

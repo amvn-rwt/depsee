@@ -5,15 +5,20 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"golang.org/x/sync/errgroup"
 )
 
 const maxGraphCVEs = 48
 
+// EnrichGraphProgress is called after each PURL vulnerability lookup finishes (done in 1..total).
+type EnrichGraphProgress func(done, total int)
+
 // EnrichGraph loads NVD data per component PURL, then computes dependents, blast radius,
 // transitive exposure, and risk score. Mutates g in place.
-func EnrichGraph(ctx context.Context, sbom *SBOM, g *Graph, nvd *NVDClient) error {
+// If onProgress is non-nil, it is invoked as each PURL query completes (thread-safe).
+func EnrichGraph(ctx context.Context, sbom *SBOM, g *Graph, nvd *NVDClient, onProgress EnrichGraphProgress) error {
 	if g == nil || nvd == nil {
 		return nil
 	}
@@ -39,6 +44,8 @@ func EnrichGraph(ctx context.Context, sbom *SBOM, g *Graph, nvd *NVDClient) erro
 	purlCVEs := make(map[string][]CVEEntry)
 	purlErr := make(map[string]bool)
 	var mu sync.Mutex
+	totalPurls := len(purls)
+	var purlDone atomic.Int32
 
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.SetLimit(32)
@@ -50,9 +57,13 @@ func EnrichGraph(ctx context.Context, sbom *SBOM, g *Graph, nvd *NVDClient) erro
 			defer mu.Unlock()
 			if err != nil {
 				purlErr[p] = true
-				return nil
+			} else {
+				purlCVEs[p] = cves
 			}
-			purlCVEs[p] = cves
+			if onProgress != nil && totalPurls > 0 {
+				d := int(purlDone.Add(1))
+				onProgress(d, totalPurls)
+			}
 			return nil
 		})
 	}

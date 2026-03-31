@@ -40,6 +40,7 @@ func RunWebServer(addr, sbomPath string, skipNVD bool) {
 	mux.HandleFunc("POST /api/sbom", func(w http.ResponseWriter, r *http.Request) {
 		handlePostSBOM(w, r, skipNVD)
 	})
+	mux.HandleFunc("GET /api/jobs/{id}", handleGetSBOMJob)
 
 	root, err := fs.Sub(webFS, "web")
 	if err != nil {
@@ -66,74 +67,100 @@ func enrichGraphIfConfigured(sbom *SBOM, g *Graph, skipNVD bool) {
 	defer cancel()
 
 	// Enrich the graph with NVD data.
-	if err := EnrichGraph(ctx, sbom, g, nvd); err != nil {
+	if err := EnrichGraph(ctx, sbom, g, nvd, nil); err != nil {
 		log.Printf("NVD enrichment: %v", err)
 	}
 }
 
-// handlePostSBOM handles the POST /api/sbom endpoint.
-// It decodes the SBOM from the request body and builds the dependency graph.
-// It then enriches the graph with NVD data if configured. It returns the graph as a JSON response.
-func handlePostSBOM(w http.ResponseWriter, r *http.Request, skipNVD bool) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-	r.Body = http.MaxBytesReader(w, r.Body, maxSBOMUploadBytes)
-
+// readSBOMUploadPayload reads raw CycloneDX JSON from a POST body (JSON or multipart field "file").
+// It writes JSON errors to w and returns ok false on failure.
+func readSBOMUploadPayload(w http.ResponseWriter, r *http.Request) (raw []byte, ok bool) {
 	ct := r.Header.Get("Content-Type")
 	mediaType, _, err := mime.ParseMediaType(ct)
 	if err != nil {
 		writeJSONError(w, http.StatusBadRequest, "invalid Content-Type")
-		return
+		return nil, false
 	}
 
-	var sbom *SBOM
 	switch {
 	case mediaType == "application/json" || strings.HasSuffix(mediaType, "+json"):
-		sbom, err = DecodeSBOM(r.Body)
+		var err error
+		raw, err = io.ReadAll(r.Body)
+		if err != nil {
+			var maxErr *http.MaxBytesError
+			if errors.As(err, &maxErr) {
+				writeJSONError(w, http.StatusRequestEntityTooLarge, "request body too large")
+				return nil, false
+			}
+			writeJSONError(w, http.StatusBadRequest, "invalid body")
+			return nil, false
+		}
+		if len(raw) == 0 {
+			writeJSONError(w, http.StatusBadRequest, "empty body")
+			return nil, false
+		}
+		return raw, true
+
 	case mediaType == "multipart/form-data":
 		if err := r.ParseMultipartForm(maxSBOMUploadBytes); err != nil {
 			var maxErr *http.MaxBytesError
 			if errors.As(err, &maxErr) {
 				writeJSONError(w, http.StatusRequestEntityTooLarge, "request body too large")
-				return
+				return nil, false
 			}
 			writeJSONError(w, http.StatusBadRequest, "invalid multipart form")
-			return
+			return nil, false
 		}
 		f, fh, ferr := r.FormFile("file")
 		if ferr != nil {
 			writeJSONError(w, http.StatusBadRequest, "missing form field \"file\"")
-			return
+			return nil, false
 		}
 		defer f.Close()
 		if fh.Size >= 0 && fh.Size > maxSBOMUploadBytes {
 			writeJSONError(w, http.StatusRequestEntityTooLarge, "file too large")
-			return
+			return nil, false
 		}
-		sbom, err = DecodeSBOM(f)
+		raw, err := io.ReadAll(f)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "could not read file")
+			return nil, false
+		}
+		if len(raw) == 0 {
+			writeJSONError(w, http.StatusBadRequest, "empty file")
+			return nil, false
+		}
+		return raw, true
+
 	default:
 		writeJSONError(w, http.StatusUnsupportedMediaType, "use application/json or multipart/form-data with field \"file\"")
+		return nil, false
+	}
+}
+
+// handlePostSBOM accepts CycloneDX JSON and starts background processing.
+// It responds with 202 Accepted and {"jobId":"..."}; poll GET /api/jobs/{id} for the graph.
+func handlePostSBOM(w http.ResponseWriter, r *http.Request, skipNVD bool) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxSBOMUploadBytes)
+
+	raw, ok := readSBOMUploadPayload(w, r)
+	if !ok {
 		return
 	}
 
+	jobID, err := registerSBOMJob()
 	if err != nil {
-		var maxErr *http.MaxBytesError
-		if errors.As(err, &maxErr) {
-			writeJSONError(w, http.StatusRequestEntityTooLarge, "request body too large")
-			return
-		}
-		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
-			writeJSONError(w, http.StatusBadRequest, "empty or truncated body")
-			return
-		}
-		writeJSONError(w, http.StatusBadRequest, "invalid CycloneDX JSON")
+		writeJSONError(w, http.StatusInternalServerError, "could not create job")
 		return
 	}
+	go startSBOMJob(jobID, raw, skipNVD)
 
-	g := BuildGraph(sbom)
-	enrichGraphIfConfigured(sbom, g, skipNVD)
-
-	if err := json.NewEncoder(w).Encode(g); err != nil {
+	w.WriteHeader(http.StatusAccepted)
+	if err := json.NewEncoder(w).Encode(struct {
+		JobID string `json:"jobId"`
+	}{JobID: jobID}); err != nil {
 		log.Printf("encode POST /api/sbom: %v", err)
 	}
 }
