@@ -10,6 +10,13 @@
     <div id="app">
       <header class="toolbar">
         <h1>depsee</h1>
+        <input
+          type="file"
+          id="sbom-file"
+          class="visually-hidden"
+          accept=".json,application/json"
+        />
+        <label for="sbom-file" class="toolbar-upload">Upload SBOM</label>
         <span id="zoom-level" class="zoom-level" aria-live="polite">100%</span>
         <span id="status" class="status">Loading…</span>
       </header>

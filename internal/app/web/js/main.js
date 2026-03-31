@@ -3,26 +3,52 @@
  */
 
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
-import { fetchGraph } from "./api.js";
+import { fetchGraph, postSbomFile } from "./api.js";
+import { hideDetail } from "./detailPanel.js";
 import { mountGraph } from "./graphView.js";
 import { prepareNodes } from "./layout.js";
 
+function renderGraphFromData(d3mod, { status, container, zoomLevel, data }) {
+  const nodes = data.nodes || [];
+  const links = data.links || [];
+
+  prepareNodes(nodes);
+
+  const withCve = nodes.filter((n) => Number(n.cveCount) > 0).length;
+  status.textContent = `${nodes.length} nodes · ${links.length} links · ${withCve} with CVEs`;
+
+  hideDetail();
+  container.innerHTML = "";
+
+  if (nodes.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "No nodes in this SBOM graph.";
+    container.appendChild(empty);
+    return;
+  }
+
+  mountGraph(d3mod, {
+    container,
+    zoomLevelEl: zoomLevel,
+    nodes,
+    links,
+  });
+}
+
 async function boot() {
-  // get the elements from the DOM
   const status = document.getElementById("status");
   const container = document.getElementById("graph");
   const zoomLevel = document.getElementById("zoom-level");
+  const fileInput = document.getElementById("sbom-file");
 
-  // if any of the elements are not found, return
   if (!status || !container || !zoomLevel) {
     return;
   }
 
-  // set the status to loading
   status.textContent = "Loading…";
   status.classList.remove("error");
 
-  // fetch the graph from the API
   let result;
   try {
     result = await fetchGraph();
@@ -32,42 +58,51 @@ async function boot() {
     return;
   }
 
-  // if the result is not ok, set the status to the HTTP status
   if (!result.ok) {
     status.textContent = `HTTP ${result.status}`;
     status.classList.add("error");
     return;
   }
 
-  // get the nodes and links from the result
-  const nodes = result.data.nodes || [];
-  const links = result.data.links || [];
+  renderGraphFromData(d3, { status, container, zoomLevel, data: result.data });
 
-  // prepare the nodes
-  prepareNodes(nodes);
-
-  // get the number of nodes with CVEs
-  const withCve = nodes.filter((n) => Number(n.cveCount) > 0).length;
-  status.textContent = `${nodes.length} nodes · ${links.length} links · ${withCve} with CVEs`;
-
-  // clear the container
-  container.innerHTML = "";
-
-  // if there are no nodes, show the empty state
-  if (nodes.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "empty-state";
-    empty.textContent = "No nodes in this SBOM graph.";
-    container.appendChild(empty);
+  if (!fileInput) {
     return;
   }
 
-  // mount the graph
-  mountGraph(d3, {
-    container,
-    zoomLevelEl: zoomLevel,
-    nodes,
-    links,
+  let uploadBusy = false;
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files?.[0];
+    fileInput.value = "";
+    if (!file || uploadBusy) {
+      return;
+    }
+
+    uploadBusy = true;
+    fileInput.disabled = true;
+    status.textContent = "Uploading…";
+    status.classList.remove("error");
+
+    try {
+      const up = await postSbomFile(file);
+      if (!up.ok) {
+        status.textContent = `Upload failed · HTTP ${up.status} · ${up.error ?? ""}`.trim();
+        status.classList.add("error");
+        return;
+      }
+      renderGraphFromData(d3, {
+        status,
+        container,
+        zoomLevel,
+        data: up.data,
+      });
+    } catch {
+      status.textContent = "Upload failed (network)";
+      status.classList.add("error");
+    } finally {
+      uploadBusy = false;
+      fileInput.disabled = false;
+    }
   });
 }
 
