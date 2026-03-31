@@ -177,11 +177,19 @@ body {
 
 .toolbar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   gap: 1rem;
   padding: 0.65rem 1rem;
   border-bottom: 1px solid #30363d;
   background: #161b22;
+  flex-shrink: 0;
+}
+
+.toolbar-end {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   flex-shrink: 0;
 }
 
@@ -206,22 +214,29 @@ body {
 
 .toolbar-upload {
   font-size: 0.82rem;
-  padding: 0.35rem 0.65rem;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  background: #21262d;
-  color: #c9d1d9;
+  font-weight: 500;
+  padding: 0.5rem 1.1rem;
+  border: none;
+  border-radius: 8px;
+  background: #93c5fd;
+  color: #111827;
   cursor: pointer;
   user-select: none;
+  line-height: 1.25;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .toolbar-upload:hover {
-  background: #30363d;
-  color: #e6edf3;
+  background: #7cb4fc;
+  color: #0a0f1a;
+}
+
+.toolbar-upload:active {
+  background: #6ba8f8;
 }
 
 #sbom-file:focus-visible + .toolbar-upload {
-  outline: 2px solid #58a6ff;
+  outline: 2px solid #e6edf3;
   outline-offset: 2px;
 }
 
