@@ -42,14 +42,11 @@ export const NODE_LABEL_BG_ASC = 11;
 /** Rough descender below second-line baseline (10px version line). */
 export const NODE_LABEL_BG_DESC = 4;
 
-export const FONT_K11 =
-  '500 11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-export const FONT_V11 =
-  '600 11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-export const FONT_K10 =
-  '500 10px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-export const FONT_V10 =
-  '400 10px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+/** Canvas font strings; keep family in sync with `--font-app` in styles.css. */
+export const FONT_K11 = '500 11px "JetBrains Mono", ui-monospace, monospace';
+export const FONT_V11 = '600 11px "JetBrains Mono", ui-monospace, monospace';
+export const FONT_K10 = '500 10px "JetBrains Mono", ui-monospace, monospace';
+export const FONT_V10 = '400 10px "JetBrains Mono", ui-monospace, monospace';
 
 export const PKG_PREFIX = "package: ";
 export const VER_PREFIX = "version: ";
