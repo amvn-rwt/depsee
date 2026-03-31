@@ -51,18 +51,29 @@ func RunWebServer(addr, sbomPath string, skipNVD bool) {
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
+// enrichGraphIfConfigured enriches the graph with NVD data if configured.
 func enrichGraphIfConfigured(sbom *SBOM, g *Graph, skipNVD bool) {
+	// If NVD enrichment is disabled, return.
 	if skipNVD {
 		return
 	}
+
+	// Create a NVD client.
 	nvd := NewNVDClient(os.Getenv("NVD_API_KEY"))
+
+	// Create a context with a timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
+
+	// Enrich the graph with NVD data.
 	if err := EnrichGraph(ctx, sbom, g, nvd); err != nil {
 		log.Printf("NVD enrichment: %v", err)
 	}
 }
 
+// handlePostSBOM handles the POST /api/sbom endpoint.
+// It decodes the SBOM from the request body and builds the dependency graph.
+// It then enriches the graph with NVD data if configured. It returns the graph as a JSON response.
 func handlePostSBOM(w http.ResponseWriter, r *http.Request, skipNVD bool) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
@@ -127,10 +138,12 @@ func handlePostSBOM(w http.ResponseWriter, r *http.Request, skipNVD bool) {
 	}
 }
 
+// apiError is the error response for the API.
 type apiError struct {
 	Error string `json:"error"`
 }
 
+// writeJSONError writes a JSON error response to the http.ResponseWriter.
 func writeJSONError(w http.ResponseWriter, status int, msg string) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
