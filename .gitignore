@@ -2,4 +2,5 @@
 /testdata
 /diagrams
 /dist
+.cursor
 *.env
