@@ -1,3 +1,8 @@
+/*
+This file is responsible for loading the SBOM and parsing it into a struct.
+It is used to build the dependency graph and the web UI.
+*/
+
 package app
 
 import (
