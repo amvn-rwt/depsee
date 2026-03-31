@@ -33,13 +33,70 @@ body {
 
 .nvd-footer {
   flex-shrink: 0;
-  padding: 0.35rem 1rem;
+  padding: 0.5rem 1rem;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
+  gap: 0.65rem 1.25rem;
   font-size: 0.7rem;
   color: #6e768e;
   border-top: 1px solid #30363d;
   background: var(--graph-canvas-bg);
+}
+
+.nvd-footer-nvd {
+  flex: 1 1 12rem;
+  min-width: min(100%, 16rem);
+  line-height: 1.4;
+}
+
+.nvd-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.nvd-footer-github {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8b949e;
+  line-height: 0;
+  border-radius: 4px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.nvd-footer-github:hover {
+  color: #58a6ff;
+}
+
+.nvd-footer-github:focus-visible {
+  outline: 2px solid #58a6ff;
+  outline-offset: 2px;
+}
+
+.nvd-footer-github-icon {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.nvd-footer-by {
+  color: #8b949e;
+  line-height: 1.4;
+}
+
+.nvd-footer-by a {
+  color: #58a6ff;
+  text-decoration: none;
+  margin-left: 0.15rem;
+}
+
+.nvd-footer-by a:hover {
+  text-decoration: underline;
 }
 
 .detail-panel {
