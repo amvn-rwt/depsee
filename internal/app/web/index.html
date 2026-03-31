@@ -21,7 +21,40 @@
         <span id="status" class="status">Loading…</span>
       </header>
       <div class="main-row">
-        <div id="graph" aria-live="polite"></div>
+        <div class="graph-shell">
+          <div id="graph" aria-live="polite"></div>
+          <div
+            id="upload-overlay"
+            class="upload-overlay"
+            hidden
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            aria-label="SBOM upload progress"
+          >
+            <svg
+              class="upload-ring-svg"
+              viewBox="0 0 64 64"
+              width="72"
+              height="72"
+              aria-hidden="true"
+            >
+              <circle class="upload-ring-track" cx="32" cy="32" r="26" />
+              <circle
+                class="upload-ring-fill"
+                id="upload-ring-fill"
+                cx="32"
+                cy="32"
+                r="26"
+                transform="rotate(-90 32 32)"
+              />
+            </svg>
+            <div id="upload-overlay-label" class="upload-overlay-label">
+              0%
+            </div>
+          </div>
+        </div>
         <aside id="detail" class="detail-panel" aria-live="polite" hidden></aside>
       </div>
       <footer class="nvd-footer">
