@@ -19,17 +19,18 @@ type SBOM struct {
 	// SerialNumber string   `json:"serialNumber"`
 	// Version  int8     `json:"version"`
 	Metadata        Metadata        `json:"metadata"`
-	Components      []Component     `json:"components"`
-	Dependencies    []Dependency    `json:"dependencies"`
+	Components      []Component     `json:"components,omitempty"`
+	Dependencies    []Dependency    `json:"dependencies,omitempty"`
 	Vulnerabilities []Vulnerability `json:"vulnerabilities,omitempty"`
 }
 
 // Vulnerability is one entry in CycloneDX top-level vulnerabilities[] (e.g. 1.4–1.7).
-// Fields omitted here are still accepted on the wire; json.Unmarshal ignores unknown keys.
+// Unknown JSON keys still decode fine. omitempty is used on scalars and slices; struct-valued
+// fields omit omitempty because encoding/json only treats the whole struct as “empty”, not each inner field.
 type Vulnerability struct {
 	BOMRef      string                `json:"bom-ref,omitempty"`
 	ID          string                `json:"id,omitempty"`
-	Source      VulnerabilitySource   `json:"source,omitempty"`
+	Source      VulnerabilitySource   `json:"source"`
 	Description string                `json:"description,omitempty"`
 	Ratings     []VulnerabilityRating `json:"ratings,omitempty"`
 	Affects     []VulnerabilityAffect `json:"affects,omitempty"`
@@ -43,7 +44,7 @@ type VulnerabilitySource struct {
 
 // VulnerabilityRating holds a score/severity (often CVSS).
 type VulnerabilityRating struct {
-	Source   VulnerabilitySource `json:"source,omitempty"`
+	Source   VulnerabilitySource `json:"source"`
 	Score    float64             `json:"score,omitempty"`
 	Severity string              `json:"severity,omitempty"`
 	Method   string              `json:"method,omitempty"`
