@@ -32,17 +32,32 @@
       </header>
       <div class="main-row">
         <div class="graph-shell">
-          <div id="graph" aria-live="polite"></div>
-          <div
-            id="upload-overlay"
-            class="upload-overlay"
-            hidden
-            role="progressbar"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            aria-valuenow="0"
-            aria-label="SBOM upload progress"
-          >
+          <div class="graph-viewport">
+            <form class="graph-search" id="graph-search-form" role="search">
+              <label class="visually-hidden" for="graph-search-input"
+                >Find package</label
+              >
+              <input
+                type="search"
+                id="graph-search-input"
+                name="q"
+                placeholder="Find package…"
+                autocomplete="off"
+                spellcheck="false"
+                enterkeyhint="search"
+              />
+            </form>
+            <div id="graph" aria-live="polite"></div>
+            <div
+              id="upload-overlay"
+              class="upload-overlay"
+              hidden
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+              aria-label="SBOM upload progress"
+            >
             <svg
               class="upload-ring-svg"
               viewBox="0 0 64 64"
@@ -63,6 +78,7 @@
             <div id="upload-overlay-label" class="upload-overlay-label">
               0%
             </div>
+          </div>
           </div>
         </div>
         <aside id="detail" class="detail-panel" aria-live="polite" hidden></aside>

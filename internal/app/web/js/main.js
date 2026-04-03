@@ -8,6 +8,12 @@ import { hideDetail } from "./detailPanel.js";
 import { mountGraph } from "./graphView.js";
 import { prepareNodes } from "./layout.js";
 
+/** @type {{ findNodeByQuery: (q: string) => object | null; focusNode: (d: object) => void; destroy: () => void } | null} */
+let graphController = null;
+
+/** Toolbar status line to restore after a transient search message. */
+let lastGraphStatusLine = "";
+
 const UPLOAD_RING_R = 26;
 const UPLOAD_RING_LEN = 2 * Math.PI * UPLOAD_RING_R;
 
@@ -109,6 +115,9 @@ function updateUploadUI(overlay, ringFill, svg, label, fraction, text) {
 }
 
 function renderGraphFromData(d3mod, { status, container, zoomLevel, data }) {
+  graphController?.destroy?.();
+  graphController = null;
+
   const nodes = data.nodes || [];
   const links = data.links || [];
 
@@ -116,6 +125,7 @@ function renderGraphFromData(d3mod, { status, container, zoomLevel, data }) {
 
   const withCve = nodes.filter((n) => Number(n.cveCount) > 0).length;
   status.textContent = `${nodes.length} nodes · ${links.length} links · ${withCve} with CVEs`;
+  lastGraphStatusLine = status.textContent;
 
   hideDetail();
   container.innerHTML = "";
@@ -128,11 +138,42 @@ function renderGraphFromData(d3mod, { status, container, zoomLevel, data }) {
     return;
   }
 
-  mountGraph(d3mod, {
+  graphController = mountGraph(d3mod, {
     container,
     zoomLevelEl: zoomLevel,
     nodes,
     links,
+  });
+}
+
+/**
+ * Submit on the canvas search form: match package, open detail, animate pan/zoom to center.
+ * @param {HTMLElement} status
+ */
+function bindGraphSearch(status) {
+  const form = document.getElementById("graph-search-form");
+  const input = document.getElementById("graph-search-input");
+  if (!form || !input) {
+    return;
+  }
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const trimmed = input.value.trim();
+    if (!trimmed) {
+      return;
+    }
+    if (!graphController) {
+      return;
+    }
+    const n = graphController.findNodeByQuery(trimmed);
+    if (!n) {
+      status.textContent = `No match for "${trimmed}"`;
+      window.setTimeout(() => {
+        status.textContent = lastGraphStatusLine;
+      }, 2800);
+      return;
+    }
+    graphController.focusNode(n);
   });
 }
 
@@ -169,6 +210,7 @@ async function boot() {
   }
 
   renderGraphFromData(d3, { status, container, zoomLevel, data: result.data });
+  bindGraphSearch(status);
 
   if (!fileInput) {
     return;

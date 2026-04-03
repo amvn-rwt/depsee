@@ -27,7 +27,15 @@ import { linkEndpoints } from "./layout.js";
 import { nodeIconPath } from "./nodeIcons.js";
 
 /**
+ * @typedef {object} MountedGraphAPI
+ * @property {(q: string) => object | null} findNodeByQuery
+ * @property {(d: object) => void} focusNode
+ * @property {() => void} destroy
+ */
+
+/**
  * Renders the graph into `container` (clears it first; caller handles empty state).
+ * @returns {MountedGraphAPI}
  */
 export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
   const svg = d3
@@ -87,6 +95,7 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     .zoom()
     .scaleExtent([0.15, 8])
     .filter((event) => {
+      if (event.target?.closest?.(".graph-search")) return false;
       if (event.target?.closest?.(".nodes")) return false;
       return (!event.ctrlKey || event.type === "wheel") && !event.button;
     })
@@ -301,4 +310,68 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     svg.attr("viewBox", [0, 0, w, h]);
   });
   ro.observe(container);
+
+  /**
+   * @param {string} q
+   * @returns {object | null}
+   */
+  function findNodeByQuery(q) {
+    const s = String(q ?? "").trim().toLowerCase();
+    if (!s) return null;
+    for (const n of nodes) {
+      const label = String(n.label ?? "").toLowerCase();
+      const name = String(n.name ?? "").toLowerCase();
+      const id = String(n.id ?? "").toLowerCase();
+      if (label.includes(s) || name.includes(s) || id.includes(s)) {
+        return n;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Opens the detail panel and pans/zooms so the node sits in the graph viewport center
+   * (after flex reflow when the panel is visible).
+   * @param {object} d
+   */
+  function focusNode(d) {
+    if (
+      d == null ||
+      typeof d.x !== "number" ||
+      typeof d.y !== "number" ||
+      Number.isNaN(d.x) ||
+      Number.isNaN(d.y)
+    ) {
+      return;
+    }
+    showDetail(d);
+    const applyCenter = () => {
+      const { w: rw, h: rh } = size();
+      svg.attr("viewBox", [0, 0, rw, rh]);
+      const el = svg.node();
+      if (!el) return;
+      const t = d3.zoomTransform(el);
+      const k = t.k;
+      const cx = rw / 2;
+      const cy = rh / 2;
+      const next = d3.zoomIdentity.translate(cx - k * d.x, cy - k * d.y).scale(k);
+      svg.interrupt();
+      svg
+        .transition()
+        .duration(650)
+        .ease(d3.easeCubicOut)
+        .call(zoom.transform, next);
+    };
+    requestAnimationFrame(() => requestAnimationFrame(applyCenter));
+  }
+
+  function destroy() {
+    ro.disconnect();
+    d3.select(window)
+      .on("mouseup.depseePanCursor", null)
+      .on("touchend.depseePanCursor touchcancel.depseePanCursor", null)
+      .on("blur.depseePanCursor", null);
+  }
+
+  return { findNodeByQuery, focusNode, destroy };
 }

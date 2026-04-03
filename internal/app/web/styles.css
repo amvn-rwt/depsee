@@ -480,6 +480,44 @@ body {
   flex-direction: column;
 }
 
+.graph-viewport {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-search {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  z-index: 12;
+  margin: 0;
+}
+
+.graph-search input[type="search"] {
+  padding: 0.4rem 0.55rem;
+  font: inherit;
+  font-size: 0.78rem;
+  color: #e6edf3;
+  background: rgba(22, 27, 34, 0.92);
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  outline: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.graph-search input[type="search"]::placeholder {
+  color: #6e7681;
+}
+
+.graph-search input[type="search"]:focus {
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.25);
+}
+
 #graph {
   flex: 1;
   min-height: 0;
