@@ -199,7 +199,6 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     .selectAll("g")
     .data(nodes)
     .join("g")
-    .call(dragBehavior(d3, simulation))
     .on("click", (event, d) => {
       event.stopPropagation();
       showDetail(d);
