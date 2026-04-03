@@ -8,11 +8,17 @@ import { hideDetail } from "./detailPanel.js";
 import { mountGraph } from "./graphView.js";
 import { prepareNodes } from "./layout.js";
 
-/** @type {{ findNodeByQuery: (q: string) => object | null; focusNode: (d: object) => void; destroy: () => void } | null} */
+/** @type {{ findNodesByQuery: (q: string) => object[]; findNodeByQuery: (q: string) => object | null; focusNode: (d: object) => void; destroy: () => void } | null} */
 let graphController = null;
 
 /** Toolbar status line to restore after a transient search message. */
 let lastGraphStatusLine = "";
+
+/** Last trimmed query used for cycling through multi-match search results. */
+let lastSearchQuery = "";
+
+/** Index into the current query’s match list (advanced on repeat submit). */
+let searchMatchIndex = 0;
 
 const UPLOAD_RING_R = 26;
 const UPLOAD_RING_LEN = 2 * Math.PI * UPLOAD_RING_R;
@@ -117,6 +123,8 @@ function updateUploadUI(overlay, ringFill, svg, label, fraction, text) {
 function renderGraphFromData(d3mod, { status, container, zoomLevel, data }) {
   graphController?.destroy?.();
   graphController = null;
+  lastSearchQuery = "";
+  searchMatchIndex = 0;
 
   const nodes = data.nodes || [];
   const links = data.links || [];
@@ -165,14 +173,21 @@ function bindGraphSearch(status) {
     if (!graphController) {
       return;
     }
-    const n = graphController.findNodeByQuery(trimmed);
-    if (!n) {
+    const matches = graphController.findNodesByQuery(trimmed);
+    if (matches.length === 0) {
       status.textContent = `No match for "${trimmed}"`;
       window.setTimeout(() => {
         status.textContent = lastGraphStatusLine;
       }, 2800);
       return;
     }
+    if (trimmed !== lastSearchQuery) {
+      lastSearchQuery = trimmed;
+      searchMatchIndex = 0;
+    } else {
+      searchMatchIndex = (searchMatchIndex + 1) % matches.length;
+    }
+    const n = matches[searchMatchIndex];
     graphController.focusNode(n);
   });
 }

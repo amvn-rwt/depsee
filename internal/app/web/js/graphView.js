@@ -28,6 +28,7 @@ import { nodeIconPath } from "./nodeIcons.js";
 
 /**
  * @typedef {object} MountedGraphAPI
+ * @property {(q: string) => object[]} findNodesByQuery
  * @property {(q: string) => object | null} findNodeByQuery
  * @property {(d: object) => void} focusNode
  * @property {() => void} destroy
@@ -312,21 +313,32 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
   ro.observe(container);
 
   /**
+   * All nodes whose label, name, or id contains the query (stable graph order).
    * @param {string} q
-   * @returns {object | null}
+   * @returns {object[]}
    */
-  function findNodeByQuery(q) {
+  function findNodesByQuery(q) {
     const s = String(q ?? "").trim().toLowerCase();
-    if (!s) return null;
+    if (!s) return [];
+    const out = [];
     for (const n of nodes) {
       const label = String(n.label ?? "").toLowerCase();
       const name = String(n.name ?? "").toLowerCase();
       const id = String(n.id ?? "").toLowerCase();
       if (label.includes(s) || name.includes(s) || id.includes(s)) {
-        return n;
+        out.push(n);
       }
     }
-    return null;
+    return out;
+  }
+
+  /**
+   * @param {string} q
+   * @returns {object | null}
+   */
+  function findNodeByQuery(q) {
+    const m = findNodesByQuery(q);
+    return m.length ? m[0] : null;
   }
 
   /**
@@ -373,5 +385,5 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
       .on("blur.depseePanCursor", null);
   }
 
-  return { findNodeByQuery, focusNode, destroy };
+  return { findNodesByQuery, findNodeByQuery, focusNode, destroy };
 }
