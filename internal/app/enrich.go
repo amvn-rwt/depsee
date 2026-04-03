@@ -15,11 +15,32 @@ const maxGraphCVEs = 48
 // EnrichGraphProgress is called after each PURL vulnerability lookup finishes (done in 1..total).
 type EnrichGraphProgress func(done, total int)
 
-// EnrichGraph loads NVD data per component PURL, then computes dependents, blast radius,
-// transitive exposure, and risk score. Mutates g in place.
+// EnrichGraphFromSBOMVulnerabilities fills node CVE fields from CycloneDX vulnerabilities[] only (no network).
+func EnrichGraphFromSBOMVulnerabilities(sbom *SBOM, g *Graph) {
+	if g == nil || sbom == nil {
+		return
+	}
+	refCVEs := refToCVEEntriesFromSBOM(sbom)
+	applyRefCVEsAndAnalyze(sbom, g, refCVEs)
+}
+
+// EnrichGraph merges NVD results into ref-scoped CVE rows (starting from SBOM vulnerabilities), then runs blast radius and risk analysis.
 // If onProgress is non-nil, it is invoked as each PURL query completes (thread-safe).
 func EnrichGraph(ctx context.Context, sbom *SBOM, g *Graph, nvd *NVDClient, onProgress EnrichGraphProgress) error {
 	if g == nil || nvd == nil {
+		return nil
+	}
+	refCVEs := refToCVEEntriesFromSBOM(sbom)
+	if err := mergeNVDCVEsIntoRefMap(ctx, sbom, g, nvd, refCVEs, onProgress); err != nil {
+		return err
+	}
+	applyRefCVEsAndAnalyze(sbom, g, refCVEs)
+	return nil
+}
+
+// mergeNVDCVEsIntoRefMap fetches NVD CVE lists per distinct PURL and appends them onto refCVEs[nodeID] with deduplication by CVE id.
+func mergeNVDCVEsIntoRefMap(ctx context.Context, sbom *SBOM, g *Graph, nvd *NVDClient, refCVEs map[string][]CVEEntry, onProgress EnrichGraphProgress) error {
+	if refCVEs == nil {
 		return nil
 	}
 	refToComp := indexComponents(sbom)
@@ -71,25 +92,57 @@ func EnrichGraph(ctx context.Context, sbom *SBOM, g *Graph, nvd *NVDClient, onPr
 		return err
 	}
 
-	directCVE := make(map[string]bool, len(g.Nodes))
-	for i := range g.Nodes {
-		n := &g.Nodes[i]
+	for _, n := range g.Nodes {
 		c, ok := refToComp[n.ID]
 		if !ok {
 			continue
 		}
 		p := strings.TrimSpace(c.PURL)
 		if p == "" {
+			continue
+		}
+		if purlErr[p] {
+			continue
+		}
+		refCVEs[n.ID] = appendCVEsDedupe(refCVEs[n.ID], purlCVEs[p])
+	}
+
+	for i := range g.Nodes {
+		c, ok := refToComp[g.Nodes[i].ID]
+		if !ok {
+			continue
+		}
+		p := strings.TrimSpace(c.PURL)
+		if p == "" {
+			continue
+		}
+		if purlErr[p] {
+			g.Nodes[i].VulnQueryError = true
+		}
+	}
+	return nil
+}
+
+// applyRefCVEsAndAnalyze attaches refCVEs to graph nodes and computes dependents, blast radius, transitive exposure, and risk score.
+func applyRefCVEsAndAnalyze(sbom *SBOM, g *Graph, refCVEs map[string][]CVEEntry) {
+	if g == nil {
+		return
+	}
+	if refCVEs == nil {
+		refCVEs = make(map[string][]CVEEntry)
+	}
+	refToComp := indexComponents(sbom)
+
+	directCVE := make(map[string]bool, len(g.Nodes))
+	for i := range g.Nodes {
+		n := &g.Nodes[i]
+		_, ok := refToComp[n.ID]
+		if !ok {
 			n.Severity = "UNKNOWN"
 			continue
 		}
 		n.VulnQueried = true
-		if purlErr[p] {
-			n.VulnQueryError = true
-			n.Severity = "UNKNOWN"
-			continue
-		}
-		cves := purlCVEs[p]
+		cves := refCVEs[n.ID]
 		n.CVECount = len(cves)
 		if len(cves) > 0 {
 			directCVE[n.ID] = true
@@ -126,8 +179,29 @@ func EnrichGraph(ctx context.Context, sbom *SBOM, g *Graph, nvd *NVDClient, onPr
 			}
 		}
 	}
+}
 
-	return nil
+// appendCVEsDedupe appends entries from add whose IDs are not already present in existing.
+func appendCVEsDedupe(existing []CVEEntry, add []CVEEntry) []CVEEntry {
+	seen := make(map[string]struct{}, len(existing)+len(add))
+	for _, e := range existing {
+		if id := strings.TrimSpace(e.ID); id != "" {
+			seen[id] = struct{}{}
+		}
+	}
+	out := append([]CVEEntry(nil), existing...)
+	for _, e := range add {
+		id := strings.TrimSpace(e.ID)
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, e)
+	}
+	return out
 }
 
 func fillNodeCVEs(n *GraphNode, cves []CVEEntry) {

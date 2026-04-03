@@ -89,8 +89,10 @@ func startSBOMJob(jobID string, rawJSON []byte, skipNVD bool) {
 	entry.mu.Unlock()
 
 	g := BuildGraph(sbom)
+	refCVEs := refToCVEEntriesFromSBOM(sbom)
 
 	if skipNVD {
+		applyRefCVEsAndAnalyze(sbom, g, refCVEs)
 		completeSBOMJob(jobID, g)
 		return
 	}
@@ -115,7 +117,7 @@ func startSBOMJob(jobID string, rawJSON []byte, skipNVD bool) {
 		updateSBOMJobProgress(jobID, SBOMJobPhaseEnriching, pct)
 	}
 
-	if err := EnrichGraph(ctx, sbom, g, nvd, onProgress); err != nil {
+	if err := mergeNVDCVEsIntoRefMap(ctx, sbom, g, nvd, refCVEs, onProgress); err != nil {
 		log.Printf("job %s NVD enrichment: %v", jobID, err)
 	}
 
@@ -124,6 +126,7 @@ func startSBOMJob(jobID string, rawJSON []byte, skipNVD bool) {
 	entry.job.Percent = 95
 	entry.mu.Unlock()
 
+	applyRefCVEsAndAnalyze(sbom, g, refCVEs)
 	completeSBOMJob(jobID, g)
 }
 

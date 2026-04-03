@@ -16,7 +16,7 @@ import (
 
 const defaultNVDBase = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
-// CVEEntry is a minimal CVE record from NVD for downstream graph enrichment.
+// CVEEntry is a minimal CVE row for graph enrichment (from NVD and/or CycloneDX vulnerabilities).
 type CVEEntry struct {
 	ID           string
 	BaseScore    float64

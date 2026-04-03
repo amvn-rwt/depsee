@@ -52,24 +52,22 @@ func RunWebServer(addr, sbomPath string, skipNVD bool) {
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
-// enrichGraphIfConfigured enriches the graph with NVD data if configured.
+// enrichGraphIfConfigured attaches CVE data from CycloneDX vulnerabilities[], then optionally merges NVD when skipNVD is false.
 func enrichGraphIfConfigured(sbom *SBOM, g *Graph, skipNVD bool) {
-	// If NVD enrichment is disabled, return.
+	refCVEs := refToCVEEntriesFromSBOM(sbom)
 	if skipNVD {
+		applyRefCVEsAndAnalyze(sbom, g, refCVEs)
 		return
 	}
 
-	// Create a NVD client.
 	nvd := NewNVDClient(os.Getenv("NVD_API_KEY"))
-
-	// Create a context with a timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 
-	// Enrich the graph with NVD data.
-	if err := EnrichGraph(ctx, sbom, g, nvd, nil); err != nil {
+	if err := mergeNVDCVEsIntoRefMap(ctx, sbom, g, nvd, refCVEs, nil); err != nil {
 		log.Printf("NVD enrichment: %v", err)
 	}
+	applyRefCVEsAndAnalyze(sbom, g, refCVEs)
 }
 
 // readSBOMUploadPayload reads raw CycloneDX JSON from a POST body (JSON or multipart field "file").

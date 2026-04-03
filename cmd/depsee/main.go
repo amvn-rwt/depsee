@@ -13,7 +13,7 @@ func main() {
 	serve := flag.Bool("serve", false, "serve web UI over HTTP")
 	addr := flag.String("addr", ":8080", "HTTP listen address (with -serve)")
 	file := flag.String("file", "testdata/min-sbom.json", "path to CycloneDX SBOM JSON")
-	skipNVD := flag.Bool("skip-nvd", false, "skip NVD CVE enrichment (no network; use with -serve)")
+	skipNVD := flag.Bool("skip-nvd", false, "skip NVD API merge; SBOM vulnerabilities[] still applied (use with -serve)")
 	flag.Parse()
 
 	if *serve {
