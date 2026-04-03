@@ -16,7 +16,6 @@ import {
   NODE_LABEL_BG_PAD_Y,
   NODE_LINE_STEP,
   NODE_PAD_BOTTOM,
-  PKG_ICON_PATH,
   PKG_ICON_TRANSLATE,
   PKG_PREFIX,
   ROOT_DOT_SCALE,
@@ -25,28 +24,7 @@ import {
 } from "./config.js";
 import { hideDetail, showDetail } from "./detailPanel.js";
 import { linkEndpoints } from "./layout.js";
-
-function dragBehavior(d3, simulation) {
-  function dragstarted(event) {
-    if (!event.active) simulation.alphaTarget(0.25).restart();
-    event.subject.fx = event.subject.x;
-    event.subject.fy = event.subject.y;
-  }
-  function dragged(event) {
-    event.subject.fx = event.x;
-    event.subject.fy = event.y;
-  }
-  function dragended(event) {
-    if (!event.active) simulation.alphaTarget(0);
-    event.subject.fx = null;
-    event.subject.fy = null;
-  }
-  return d3
-    .drag()
-    .on("start", dragstarted)
-    .on("drag", dragged)
-    .on("end", dragended);
-}
+import { nodeIconPath } from "./nodeIcons.js";
 
 /**
  * Renders the graph into `container` (clears it first; caller handles empty state).
@@ -228,7 +206,7 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
         ? `${PKG_ICON_TRANSLATE} scale(${Math.sqrt(ROOT_DOT_SCALE).toFixed(3)})`
         : PKG_ICON_TRANSLATE
     )
-    .attr("d", PKG_ICON_PATH)
+    .attr("d", (d) => nodeIconPath(d))
     .attr("fill", "none");
 
   node.each(function (d) {
