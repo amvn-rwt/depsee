@@ -30,6 +30,50 @@ func IndexVulnerabilitiesByRef(s *SBOM) map[string][]Vulnerability {
 	return out
 }
 
+// componentRefAliases lists distinct non-empty refs for a component (bom-ref, purl, canonical Ref) so vulnerability affects[].ref can match any of them.
+func componentRefAliases(c Component) []string {
+	seen := make(map[string]struct{})
+	var keys []string
+	add := func(s string) {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			return
+		}
+		if _, ok := seen[s]; ok {
+			return
+		}
+		seen[s] = struct{}{}
+		keys = append(keys, s)
+	}
+	add(c.BOMRef)
+	add(c.PURL)
+	add(c.Ref())
+	return keys
+}
+
+// cvesForComponent collects CVE rows stored under any alias key, deduped by CVE id.
+func cvesForComponent(refCVEs map[string][]CVEEntry, c Component) []CVEEntry {
+	if refCVEs == nil {
+		return nil
+	}
+	seenID := make(map[string]struct{})
+	var out []CVEEntry
+	for _, k := range componentRefAliases(c) {
+		for _, e := range refCVEs[k] {
+			id := strings.TrimSpace(e.ID)
+			if id == "" {
+				continue
+			}
+			if _, ok := seenID[id]; ok {
+				continue
+			}
+			seenID[id] = struct{}{}
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
 // vulnerabilityToCVEEntry picks the highest-scoring rating and maps it to CVEEntry for graph enrichment.
 func vulnerabilityToCVEEntry(v Vulnerability) CVEEntry {
 	e := CVEEntry{ID: strings.TrimSpace(v.ID)}

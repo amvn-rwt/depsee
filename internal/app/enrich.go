@@ -136,13 +136,13 @@ func applyRefCVEsAndAnalyze(sbom *SBOM, g *Graph, refCVEs map[string][]CVEEntry)
 	directCVE := make(map[string]bool, len(g.Nodes))
 	for i := range g.Nodes {
 		n := &g.Nodes[i]
-		_, ok := refToComp[n.ID]
+		c, ok := refToComp[n.ID]
 		if !ok {
 			n.Severity = "UNKNOWN"
 			continue
 		}
 		n.VulnQueried = true
-		cves := refCVEs[n.ID]
+		cves := cvesForComponent(refCVEs, c)
 		n.CVECount = len(cves)
 		if len(cves) > 0 {
 			directCVE[n.ID] = true

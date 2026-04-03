@@ -121,16 +121,21 @@ func BuildGraph(s *SBOM) *Graph {
 	return &Graph{Nodes: nodes, Links: links}
 }
 
-// indexComponents maps each component's BOMRef to its Component struct.
+// indexComponents maps component identity strings to Component (canonical Ref(), plus purl when it differs so dependency edges match).
 func indexComponents(s *SBOM) map[string]Component {
 	out := make(map[string]Component)
-	if ref := s.Metadata.Component.Ref(); ref != "" {
-		out[ref] = s.Metadata.Component
-	}
-	for _, c := range s.Components {
-		if ref := c.Ref(); ref != "" {
+	add := func(c Component) {
+		ref := c.Ref()
+		if ref != "" {
 			out[ref] = c
 		}
+		if p := strings.TrimSpace(c.PURL); p != "" && p != ref {
+			out[p] = c
+		}
+	}
+	add(s.Metadata.Component)
+	for _, c := range s.Components {
+		add(c)
 	}
 	return out
 }

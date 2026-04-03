@@ -45,3 +45,15 @@ func TestIndexVulnerabilitiesByRef_sbomWithCVEs(t *testing.T) {
 		t.Fatalf("expected CVE-2021-44228 in index for %q, got %d entries", ref, len(list))
 	}
 }
+
+// TestCVESForComponent_aliasMatch ensures affects keyed only by purl still attach when graph uses bom-ref as canonical Ref.
+func TestCVESForComponent_aliasMatch(t *testing.T) {
+	refCVEs := map[string][]CVEEntry{
+		"pkg:npm/foo@1.0.0": {{ID: "CVE-2020-1", BaseScore: 7.0, BaseSeverity: "HIGH"}},
+	}
+	c := Component{BOMRef: "npm-foo-1", PURL: "pkg:npm/foo@1.0.0", Name: "foo", Version: "1.0.0"}
+	out := cvesForComponent(refCVEs, c)
+	if len(out) != 1 || out[0].ID != "CVE-2020-1" {
+		t.Fatalf("got %+v", out)
+	}
+}
