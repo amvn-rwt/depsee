@@ -154,14 +154,8 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
           return Math.hypot(halfX, d._bboxBottomY) + 8;
         })
     );
-
-  const ro = new ResizeObserver(() => {
-    ({ w, h } = size());
-    svg.attr("viewBox", [0, 0, w, h]);
-    simulation.force("center", d3.forceCenter(w / 2, h / 2));
-    simulation.alpha(0.2).restart();
-  });
-  ro.observe(container);
+  // Avoid the default timer; we settle with explicit tick() and sync the DOM once at the end.
+  simulation.stop();
 
   const link = g
     .append("g")
@@ -279,12 +273,32 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     text.append("tspan").attr("class", "node-v-ver").text(d._verVal);
   });
 
-  simulation.on("tick", () => {
+  // Manual `simulation.tick()` does not dispatch "tick" (only the internal timer does), so we must push positions to the DOM ourselves after settling.
+  function syncGraphPositions() {
     link.each(function (d) {
       const { x1, y1, x2, y2 } = linkEndpoints(d);
       d3.select(this).attr("x1", x1).attr("y1", y1).attr("x2", x2).attr("y2", y2);
     });
-
     node.attr("transform", (d) => `translate(${d.x},${d.y})`);
+  }
+
+  simulation.on("tick", syncGraphPositions);
+
+  // Settle layout synchronously (no visible animation), then pin nodes so resize / panel toggle does not restart the sim.
+  let settleSteps = 0;
+  while (simulation.alpha() > 0.001 && settleSteps++ < 800) {
+    simulation.tick();
+  }
+  syncGraphPositions();
+  for (const n of nodes) {
+    n.fx = n.x;
+    n.fy = n.y;
+  }
+  simulation.stop();
+
+  const ro = new ResizeObserver(() => {
+    ({ w, h } = size());
+    svg.attr("viewBox", [0, 0, w, h]);
   });
+  ro.observe(container);
 }
