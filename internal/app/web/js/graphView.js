@@ -88,8 +88,16 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     zoomLevelEl.textContent = `${Math.round(k * 100)}%`;
   }
 
+  const PANNING_HTML_CLASS = "depsee-graph-panning";
+
   function clearPanCursor() {
     svg.classed("panning", false);
+    document.documentElement.classList.remove(PANNING_HTML_CLASS);
+  }
+
+  function setPanningUi(on) {
+    svg.classed("panning", on);
+    document.documentElement.classList.toggle(PANNING_HTML_CLASS, on);
   }
 
   const zoom = d3
@@ -103,6 +111,17 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     .on("zoom", (event) => {
       g.attr("transform", event.transform);
       setZoomLabel(event.transform.k);
+    })
+    .on("start", (event) => {
+      const src = event.sourceEvent;
+      if (!src) return;
+      const t = src.type;
+      if (t !== "mousedown" && t !== "touchstart") return;
+      if (src.target?.closest?.(".nodes")) return;
+      setPanningUi(true);
+    })
+    .on("end", () => {
+      clearPanCursor();
     });
 
   svg.call(zoom);
@@ -113,18 +132,6 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     if (t && t.classList && t.classList.contains("graph-bg")) {
       hideDetail();
     }
-  });
-
-  svg.on("mousedown.panCursor", (event) => {
-    if (event.button !== 0) return;
-    if (event.target?.closest?.(".nodes")) return;
-    svg.classed("panning", true);
-  });
-
-  svg.on("touchstart.panCursor", (event) => {
-    if (event.touches.length !== 1) return;
-    if (event.target?.closest?.(".nodes")) return;
-    svg.classed("panning", true);
   });
 
   d3.select(window)
@@ -378,6 +385,7 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
   }
 
   function destroy() {
+    clearPanCursor();
     ro.disconnect();
     d3.select(window)
       .on("mouseup.depseePanCursor", null)
