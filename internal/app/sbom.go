@@ -18,9 +18,40 @@ type SBOM struct {
 	SpecVersion string `json:"specVersion"`
 	// SerialNumber string   `json:"serialNumber"`
 	// Version  int8     `json:"version"`
-	Metadata     Metadata     `json:"metadata"`
-	Components   []Component  `json:"components"`
-	Dependencies []Dependency `json:"dependencies"`
+	Metadata        Metadata        `json:"metadata"`
+	Components      []Component     `json:"components"`
+	Dependencies    []Dependency    `json:"dependencies"`
+	Vulnerabilities []Vulnerability `json:"vulnerabilities,omitempty"`
+}
+
+// Vulnerability is one entry in CycloneDX top-level vulnerabilities[] (e.g. 1.4–1.7).
+// Fields omitted here are still accepted on the wire; json.Unmarshal ignores unknown keys.
+type Vulnerability struct {
+	BOMRef      string                `json:"bom-ref,omitempty"`
+	ID          string                `json:"id,omitempty"`
+	Source      VulnerabilitySource   `json:"source,omitempty"`
+	Description string                `json:"description,omitempty"`
+	Ratings     []VulnerabilityRating `json:"ratings,omitempty"`
+	Affects     []VulnerabilityAffect `json:"affects,omitempty"`
+}
+
+// VulnerabilitySource identifies who reported the vulnerability (e.g. NVD).
+type VulnerabilitySource struct {
+	Name string `json:"name,omitempty"`
+	URL  string `json:"url,omitempty"`
+}
+
+// VulnerabilityRating holds a score/severity (often CVSS).
+type VulnerabilityRating struct {
+	Source   VulnerabilitySource `json:"source,omitempty"`
+	Score    float64             `json:"score,omitempty"`
+	Severity string              `json:"severity,omitempty"`
+	Method   string              `json:"method,omitempty"`
+}
+
+// VulnerabilityAffect links a vulnerability to a component via ref (bom-ref or purl).
+type VulnerabilityAffect struct {
+	Ref string `json:"ref,omitempty"`
 }
 
 // Metadata is the metadata object of the SBOM
