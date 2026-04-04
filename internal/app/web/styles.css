@@ -621,10 +621,13 @@ html.depsee-graph-panning body {
   stroke-linecap: butt;
 }
 
+/* Path highlight: dim everything outside the upstream ∪ downstream induced subgraph. */
 .links line.graph-dim {
-  stroke-opacity: 0.18;
+  stroke-opacity: 0.16;
+  stroke-width: 1.25px;
 }
 
+/* Upstream = who depends on the anchor (stronger). Downstream = what the anchor pulls in (lighter). */
 .links line.graph-path-up {
   stroke: #58a6ff;
   stroke-opacity: 1;
@@ -633,13 +636,16 @@ html.depsee-graph-panning body {
 
 .links line.graph-path-down {
   stroke: #6e768e;
-  stroke-opacity: 0.95;
+  stroke-opacity: 0.92;
   stroke-width: 1.85px;
+  stroke-dasharray: 5 3;
 }
 
 .links line.graph-path-up.graph-path-down {
   stroke: #58a6ff;
+  stroke-opacity: 1;
   stroke-width: 2.35px;
+  stroke-dasharray: none;
 }
 
 /* Marker lives under <defs>, not `.links`, so target `#depsee-arrow` explicitly. */
@@ -664,7 +670,7 @@ html.depsee-graph-panning body {
 }
 
 .nodes > g.graph-dim {
-  opacity: 0.3;
+  opacity: 0.28;
 }
 
 .nodes > g.graph-path-anchor {
@@ -672,16 +678,49 @@ html.depsee-graph-panning body {
 }
 
 .nodes > g.graph-path-anchor .node-dot {
+  stroke: #58a6ff;
   stroke-width: 3px;
   filter: drop-shadow(0 0 5px rgba(88, 166, 255, 0.45));
 }
 
+/* Node-side cue for path role (links already vary up vs down). */
+.nodes > g.graph-path-up-node:not(.graph-path-down-node) .node-v-name {
+  fill: #f0f3f6;
+}
+
+.nodes > g.graph-path-down-node:not(.graph-path-up-node) .node-k,
+.nodes > g.graph-path-down-node:not(.graph-path-up-node) .node-k-ver {
+  fill: #6e7681;
+}
+
+.nodes > g.graph-path-up-node.graph-path-down-node .node-v-name {
+  fill: #e6edf3;
+}
+
+/* Vuln accent on highlighted nodes: stroke weight + dash vs solid (not color alone). */
 .nodes > g.graph-path-vuln-direct .node-dot {
+  stroke: #f0883e;
   stroke-width: 3px;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 4px rgba(240, 136, 62, 0.42));
 }
 
 .nodes > g.graph-path-vuln-transitive .node-dot {
-  stroke-width: 2.75px;
+  stroke: #58a6ff;
+  stroke-width: 3px;
+  stroke-dasharray: 2.5 2;
+  filter: drop-shadow(0 0 3px rgba(88, 166, 255, 0.38));
+}
+
+.nodes > g.graph-path-anchor.graph-path-vuln-direct .node-dot {
+  stroke: #ffa657;
+  stroke-width: 3.25px;
+}
+
+.nodes > g.graph-path-anchor.graph-path-vuln-transitive .node-dot {
+  stroke: #79c0ff;
+  stroke-width: 3.1px;
+  stroke-dasharray: 2.5 2;
 }
 
 .nodes .node-dot {
