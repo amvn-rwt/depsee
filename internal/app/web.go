@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log"
 	"mime"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -35,7 +36,22 @@ func httpDisplayURL(addr string) string {
 	return "http://" + a
 }
 
-func RunWebServer(addr, sbomPath string, skipNVD bool) {
+// httpURLFromListenAddr builds a local http URL from net.Listener.Addr().String().
+// Wildcard binds (0.0.0.0, ::) map to 127.0.0.1 so the link works in a browser.
+func httpURLFromListenAddr(listen string) string {
+	host, port, err := net.SplitHostPort(listen)
+	if err != nil {
+		return httpDisplayURL(listen)
+	}
+	switch host {
+	case "", "0.0.0.0", "::", "[::]":
+		return "http://127.0.0.1:" + port
+	default:
+		return "http://" + net.JoinHostPort(host, port)
+	}
+}
+
+func RunWebServer(addr, sbomPath string, skipNVD, openBrowser bool) {
 	sbom, err := LoadSBOM(sbomPath)
 	if err != nil {
 		log.Fatalf("load SBOM %q: %v", sbomPath, err)
@@ -62,8 +78,22 @@ func RunWebServer(addr, sbomPath string, skipNVD bool) {
 	}
 	mux.Handle("/", http.FileServer(http.FS(root)))
 
-	log.Printf("depsee web UI at %s/ (SBOM: %s)", httpDisplayURL(addr), sbomPath)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalf("listen %q: %v", addr, err)
+	}
+	baseURL := httpURLFromListenAddr(ln.Addr().String())
+	if openBrowser {
+		u := baseURL + "/"
+		go func() {
+			time.Sleep(150 * time.Millisecond)
+			if err := OpenDefaultBrowser(u); err != nil {
+				log.Printf("open browser: %v", err)
+			}
+		}()
+	}
+	log.Printf("depsee web UI at %s/ (SBOM: %s)", baseURL, sbomPath)
+	log.Fatal(http.Serve(ln, mux))
 }
 
 // enrichGraphIfConfigured attaches CVE data from CycloneDX vulnerabilities[], then optionally merges NVD when skipNVD is false.

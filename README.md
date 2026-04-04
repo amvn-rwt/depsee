@@ -33,7 +33,11 @@ cd depsee
 go run ./cmd/depsee -serve
 ```
 
-Open the URL printed in the terminal (default listen address is `:8080`, shown as `http://127.0.0.1:8080/`). The UI and `GET /api/graph` use that same origin.
+Open the URL printed in the terminal (default listen address is `:8080`, shown as `http://127.0.0.1:8080/`). The UI and `GET /api/graph` use that same origin. To open your default browser automatically, add `-open`:
+
+```bash
+go run ./cmd/depsee -serve -open
+```
 
 Use your own CycloneDX file:
 
@@ -61,7 +65,7 @@ go build -o depsee.exe ./cmd/depsee
 go run ./cmd/depsee -serve
 ```
 
-Then open the URL from the log. With a specific SBOM:
+Then open the URL from the log (or use `-open`). With a specific SBOM:
 
 ```bash
 go run ./cmd/depsee -serve -file path/to/service.sbom.json
@@ -97,6 +101,7 @@ depsee -serve -file path/to/service.sbom.json
 depsee -file path/to/service.sbom.json
 depsee -serve -addr :9090 -file path/to/service.sbom.json
 depsee -serve -skip-nvd
+depsee -serve -open
 ```
 
 ### Flags
@@ -104,6 +109,7 @@ depsee -serve -skip-nvd
 - `-file` - path to a CycloneDX JSON SBOM file (default: `testdata/min-sbom.json`)
 - `-serve` - start the local HTTP server and web UI
 - `-addr` - HTTP listen address for web mode (default: `:8080`)
+- `-open` - with `-serve`, open the UI in the default browser after the server starts listening
 - `-skip-nvd` - disable NVD enrichment
 
 ## NVD API Key
@@ -166,6 +172,7 @@ Run the web app locally:
 
 ```bash
 go run ./cmd/depsee -serve -skip-nvd
+go run ./cmd/depsee -serve -skip-nvd -open
 ```
 
 With a custom SBOM:

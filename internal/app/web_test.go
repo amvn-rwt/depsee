@@ -42,6 +42,23 @@ func pollSBOMJob(t *testing.T, jobID string, maxWait time.Duration) SBOMJob {
 	return SBOMJob{}
 }
 
+func TestHTTPURLFromListenAddr(t *testing.T) {
+	tests := []struct {
+		listen, want string
+	}{
+		{"127.0.0.1:8080", "http://127.0.0.1:8080"},
+		{"0.0.0.0:9090", "http://127.0.0.1:9090"},
+		{":8080", "http://127.0.0.1:8080"}, // SplitHostPort fails → httpDisplayURL
+		{"[::]:4000", "http://127.0.0.1:4000"},
+		{"[::1]:5000", "http://[::1]:5000"},
+	}
+	for _, tc := range tests {
+		if got := httpURLFromListenAddr(tc.listen); got != tc.want {
+			t.Errorf("httpURLFromListenAddr(%q) = %q, want %q", tc.listen, got, tc.want)
+		}
+	}
+}
+
 func TestHTTPDisplayURL(t *testing.T) {
 	tests := []struct {
 		addr string

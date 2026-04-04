@@ -14,10 +14,11 @@ func main() {
 	addr := flag.String("addr", ":8080", "HTTP listen address (with -serve)")
 	file := flag.String("file", "testdata/min-sbom.json", "path to CycloneDX SBOM JSON")
 	skipNVD := flag.Bool("skip-nvd", false, "skip NVD API merge; SBOM vulnerabilities[] still applied (use with -serve)")
+	openBrowser := flag.Bool("open", false, "with -serve, open the web UI in the default browser after the server starts")
 	flag.Parse()
 
 	if *serve {
-		app.RunWebServer(*addr, *file, *skipNVD)
+		app.RunWebServer(*addr, *file, *skipNVD, *openBrowser)
 		return
 	}
 
