@@ -27,6 +27,76 @@ import { linkEndpoints } from "./layout.js";
 import { nodeIconPath } from "./nodeIcons.js";
 
 /**
+ * @param {object[]} links Links with forceLink-resolved `source` / `target` (node objects with `.id`).
+ * @returns {{ rev: Map<string, string[]>, fwd: Map<string, string[]> }}
+ *   rev: targetId → sourceIds (dependents). fwd: sourceId → targetIds (dependencies).
+ */
+function buildAdjacencyIdMaps(links) {
+  const rev = new Map();
+  const fwd = new Map();
+  for (const L of links) {
+    const s = L.source && typeof L.source === "object" ? L.source.id : L.source;
+    const t = L.target && typeof L.target === "object" ? L.target.id : L.target;
+    if (s == null || t == null) continue;
+    const sid = String(s);
+    const tid = String(t);
+    if (!rev.has(tid)) rev.set(tid, []);
+    rev.get(tid).push(sid);
+    if (!fwd.has(sid)) fwd.set(sid, []);
+    fwd.get(sid).push(tid);
+  }
+  return { rev, fwd };
+}
+
+/**
+ * All node ids that transitively depend on `id` (BFS along target → source), including `id`.
+ * @param {string} id
+ * @param {Map<string, string[]>} rev
+ * @returns {Set<string>}
+ */
+function collectUpstreamIds(id, rev) {
+  const anchor = String(id);
+  const out = new Set([anchor]);
+  const q = [anchor];
+  for (let i = 0; i < q.length; i++) {
+    const cur = q[i];
+    const srcs = rev.get(cur);
+    if (!srcs) continue;
+    for (const s of srcs) {
+      if (!out.has(s)) {
+        out.add(s);
+        q.push(s);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * All node ids reachable from `id` following source → target, including `id`.
+ * @param {string} id
+ * @param {Map<string, string[]>} fwd
+ * @returns {Set<string>}
+ */
+function collectDownstreamIds(id, fwd) {
+  const anchor = String(id);
+  const out = new Set([anchor]);
+  const q = [anchor];
+  for (let i = 0; i < q.length; i++) {
+    const cur = q[i];
+    const tgts = fwd.get(cur);
+    if (!tgts) continue;
+    for (const t of tgts) {
+      if (!out.has(t)) {
+        out.add(t);
+        q.push(t);
+      }
+    }
+  }
+  return out;
+}
+
+/**
  * @typedef {object} MountedGraphAPI
  * @property {(q: string) => object[]} findNodesByQuery
  * @property {(q: string) => object | null} findNodeByQuery
@@ -312,6 +382,8 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     n.fy = n.y;
   }
   simulation.stop();
+
+  const { rev: graphPathRev, fwd: graphPathFwd } = buildAdjacencyIdMaps(links);
 
   const ro = new ResizeObserver(() => {
     ({ w, h } = size());
