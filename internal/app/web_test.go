@@ -42,6 +42,26 @@ func pollSBOMJob(t *testing.T, jobID string, maxWait time.Duration) SBOMJob {
 	return SBOMJob{}
 }
 
+func TestHTTPDisplayURL(t *testing.T) {
+	tests := []struct {
+		addr string
+		want string
+	}{
+		{":8080", "http://127.0.0.1:8080"},
+		{"127.0.0.1:18080", "http://127.0.0.1:18080"},
+		{"localhost:9090", "http://localhost:9090"},
+		{"0.0.0.0:3000", "http://0.0.0.0:3000"},
+		{"[::1]:8080", "http://[::1]:8080"},
+		{"  :4000  ", "http://127.0.0.1:4000"},
+		{"", "http://127.0.0.1:8080"},
+	}
+	for _, tc := range tests {
+		if got := httpDisplayURL(tc.addr); got != tc.want {
+			t.Errorf("httpDisplayURL(%q) = %q, want %q", tc.addr, got, tc.want)
+		}
+	}
+}
+
 func TestHandlePostSBOM_JSON(t *testing.T) {
 	raw, err := os.ReadFile(filepath.Join("..", "..", "testdata", "min-sbom.json"))
 	if err != nil {

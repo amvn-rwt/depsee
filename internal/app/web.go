@@ -21,6 +21,20 @@ var webFS embed.FS
 // maxSBOMUploadBytes caps POST /api/sbom body size (JSON or multipart file).
 const maxSBOMUploadBytes = 32 << 20 // 32 MiB
 
+// httpDisplayURL returns a copy-pasteable http URL for logging when the server
+// listens on addr. Go's convention ":8080" means all interfaces; we show 127.0.0.1
+// so users open the UI locally. Host:port addrs (e.g. "127.0.0.1:9090") are used as-is.
+func httpDisplayURL(addr string) string {
+	a := strings.TrimSpace(addr)
+	if a == "" {
+		return "http://127.0.0.1:8080"
+	}
+	if strings.HasPrefix(a, ":") {
+		return "http://127.0.0.1" + a
+	}
+	return "http://" + a
+}
+
 func RunWebServer(addr, sbomPath string, skipNVD bool) {
 	sbom, err := LoadSBOM(sbomPath)
 	if err != nil {
@@ -48,7 +62,7 @@ func RunWebServer(addr, sbomPath string, skipNVD bool) {
 	}
 	mux.Handle("/", http.FileServer(http.FS(root)))
 
-	log.Printf("depsee web UI at http://127.0.0.1%s/ (SBOM: %s)", addr, sbomPath)
+	log.Printf("depsee web UI at %s/ (SBOM: %s)", httpDisplayURL(addr), sbomPath)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
