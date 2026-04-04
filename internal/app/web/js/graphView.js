@@ -252,16 +252,8 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     .join("line")
     .attr("marker-end", "url(#depsee-arrow)");
 
-  const node = g
-    .append("g")
-    .attr("class", "nodes")
-    .selectAll("g")
-    .data(nodes)
-    .join("g")
-    .on("click", (event, d) => {
-      event.stopPropagation();
-      showDetail(d);
-    });
+  const nodesLayer = g.append("g").attr("class", "nodes");
+  const node = nodesLayer.selectAll("g").data(nodes).join("g");
 
   node
     .append("circle")
@@ -450,6 +442,122 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     });
   }
 
+  const nodesLayerEl = nodesLayer.node();
+  /** @type {object | null} */
+  let hoverPathNode = null;
+  /** @type {object | null} */
+  let focusPathNode = null;
+  /** @type {object | null} */
+  let detailPathNode = null;
+  let pathPointerLeaveRafId = 0;
+  let pathFocusOutRafId = 0;
+  const pathInteractAbort = new AbortController();
+
+  /**
+   * @param {EventTarget | null} el
+   * @returns {SVGGElement | null}
+   */
+  function graphNodeGroupFromEl(el) {
+    if (!el || !("closest" in el) || typeof el.closest !== "function") return null;
+    const g = el.closest(".nodes > g");
+    return g instanceof SVGGElement ? g : null;
+  }
+
+  function cancelPathPointerLeaveRaf() {
+    if (pathPointerLeaveRafId) {
+      cancelAnimationFrame(pathPointerLeaveRafId);
+      pathPointerLeaveRafId = 0;
+    }
+  }
+
+  function cancelPathFocusOutRaf() {
+    if (pathFocusOutRafId) {
+      cancelAnimationFrame(pathFocusOutRafId);
+      pathFocusOutRafId = 0;
+    }
+  }
+
+  function syncPathHighlightFromState() {
+    if (focusPathNode) {
+      setPathHighlight(focusPathNode);
+      return;
+    }
+    if (hoverPathNode) {
+      setPathHighlight(hoverPathNode);
+      return;
+    }
+    if (detailPathNode) {
+      setPathHighlight(detailPathNode);
+      return;
+    }
+    clearPathHighlight();
+  }
+
+  function onDetailHidden() {
+    detailPathNode = null;
+    syncPathHighlightFromState();
+  }
+  document.addEventListener("depsee:detail-hidden", onDetailHidden, {
+    signal: pathInteractAbort.signal,
+  });
+
+  if (nodesLayerEl) {
+    nodesLayerEl.addEventListener(
+      "focusin",
+      (ev) => {
+        const grp = graphNodeGroupFromEl(ev.target);
+        if (!grp || !nodesLayerEl.contains(grp)) return;
+        focusPathNode = grp.__data__;
+        syncPathHighlightFromState();
+      },
+      { signal: pathInteractAbort.signal }
+    );
+    nodesLayerEl.addEventListener(
+      "focusout",
+      (ev) => {
+        const rt = ev.relatedTarget;
+        if (graphNodeGroupFromEl(rt) && nodesLayerEl.contains(rt)) return;
+        cancelPathFocusOutRaf();
+        pathFocusOutRafId = requestAnimationFrame(() => {
+          pathFocusOutRafId = 0;
+          const ae = document.activeElement;
+          if (graphNodeGroupFromEl(ae) && nodesLayerEl.contains(ae)) return;
+          focusPathNode = null;
+          syncPathHighlightFromState();
+        });
+      },
+      { signal: pathInteractAbort.signal }
+    );
+  }
+
+  node
+    .attr("tabindex", 0)
+    .on("click", (event, d) => {
+      event.stopPropagation();
+      detailPathNode = d;
+      showDetail(d);
+      syncPathHighlightFromState();
+    })
+    .on("pointerenter", (_event, d) => {
+      cancelPathPointerLeaveRaf();
+      hoverPathNode = d;
+      syncPathHighlightFromState();
+    })
+    .on("pointerleave", (event) => {
+      const rt = event.relatedTarget;
+      if (graphNodeGroupFromEl(rt) && nodesLayerEl?.contains(rt)) return;
+      const x = event.clientX;
+      const y = event.clientY;
+      cancelPathPointerLeaveRaf();
+      pathPointerLeaveRafId = requestAnimationFrame(() => {
+        pathPointerLeaveRafId = 0;
+        const top = document.elementFromPoint(x, y);
+        if (graphNodeGroupFromEl(top) && nodesLayerEl?.contains(top)) return;
+        hoverPathNode = null;
+        syncPathHighlightFromState();
+      });
+    });
+
   const ro = new ResizeObserver(() => {
     ({ w, h } = size());
     svg.attr("viewBox", [0, 0, w, h]);
@@ -500,6 +608,7 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     ) {
       return;
     }
+    detailPathNode = d;
     showDetail(d);
     const applyCenter = () => {
       const { w: rw, h: rh } = size();
@@ -519,10 +628,16 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
         .call(zoom.transform, next);
     };
     requestAnimationFrame(() => requestAnimationFrame(applyCenter));
-    setPathHighlight(d);
+    syncPathHighlightFromState();
   }
 
   function destroy() {
+    cancelPathPointerLeaveRaf();
+    cancelPathFocusOutRaf();
+    pathInteractAbort.abort();
+    hoverPathNode = null;
+    focusPathNode = null;
+    detailPathNode = null;
     clearPathHighlight();
     clearPanCursor();
     ro.disconnect();

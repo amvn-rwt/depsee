@@ -87,6 +87,7 @@ export function hideDetail() {
   if (!panel) return;
   panel.hidden = true;
   panel.innerHTML = "";
+  document.dispatchEvent(new CustomEvent("depsee:detail-hidden"));
 }
 
 /**

@@ -652,6 +652,17 @@ html.depsee-graph-panning body {
   cursor: pointer;
 }
 
+/* Keyboard focus: show ring on the dot (SVG <g> outline support is inconsistent). */
+.nodes > g:focus {
+  outline: none;
+}
+
+.nodes > g:focus-visible .node-dot {
+  stroke: #58a6ff;
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 6px rgba(88, 166, 255, 0.55));
+}
+
 .nodes > g.graph-dim {
   opacity: 0.3;
 }
