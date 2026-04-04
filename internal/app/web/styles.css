@@ -621,6 +621,27 @@ html.depsee-graph-panning body {
   stroke-linecap: butt;
 }
 
+.links line.graph-dim {
+  stroke-opacity: 0.18;
+}
+
+.links line.graph-path-up {
+  stroke: #58a6ff;
+  stroke-opacity: 1;
+  stroke-width: 2.25px;
+}
+
+.links line.graph-path-down {
+  stroke: #6e768e;
+  stroke-opacity: 0.95;
+  stroke-width: 1.85px;
+}
+
+.links line.graph-path-up.graph-path-down {
+  stroke: #58a6ff;
+  stroke-width: 2.35px;
+}
+
 /* Marker lives under <defs>, not `.links`, so target `#depsee-arrow` explicitly. */
 #depsee-arrow .link-arrow-head {
   fill: #484f58;
@@ -629,6 +650,27 @@ html.depsee-graph-panning body {
 
 .nodes > g {
   cursor: pointer;
+}
+
+.nodes > g.graph-dim {
+  opacity: 0.3;
+}
+
+.nodes > g.graph-path-anchor {
+  opacity: 1;
+}
+
+.nodes > g.graph-path-anchor .node-dot {
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 5px rgba(88, 166, 255, 0.45));
+}
+
+.nodes > g.graph-path-vuln-direct .node-dot {
+  stroke-width: 3px;
+}
+
+.nodes > g.graph-path-vuln-transitive .node-dot {
+  stroke-width: 2.75px;
 }
 
 .nodes .node-dot {

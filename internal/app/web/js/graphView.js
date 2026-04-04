@@ -385,6 +385,71 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
 
   const { rev: graphPathRev, fwd: graphPathFwd } = buildAdjacencyIdMaps(links);
 
+  /**
+   * @param {object} L
+   * @returns {{ sid: string, tid: string } | null}
+   */
+  function linkEndpointIds(L) {
+    const s = L.source && typeof L.source === "object" ? L.source.id : L.source;
+    const t = L.target && typeof L.target === "object" ? L.target.id : L.target;
+    if (s == null || t == null) return null;
+    return { sid: String(s), tid: String(t) };
+  }
+
+  function clearPathHighlight() {
+    node
+      .classed("graph-dim", false)
+      .classed("graph-path-anchor", false)
+      .classed("graph-path-up-node", false)
+      .classed("graph-path-down-node", false)
+      .classed("graph-path-vuln-direct", false)
+      .classed("graph-path-vuln-transitive", false);
+    link.classed("graph-dim", false).classed("graph-path-up", false).classed("graph-path-down", false);
+  }
+
+  /**
+   * Highlights upstream (dependents) and downstream (dependencies) induced subgraphs for `anchorNode`.
+   * Pass `null` to clear.
+   * @param {object | null} anchorNode
+   */
+  function setPathHighlight(anchorNode) {
+    if (anchorNode == null) {
+      clearPathHighlight();
+      return;
+    }
+    const aid = String(anchorNode.id);
+    const upIds = collectUpstreamIds(aid, graphPathRev);
+    const downIds = collectDownstreamIds(aid, graphPathFwd);
+    const anyIds = new Set(upIds);
+    for (const x of downIds) anyIds.add(x);
+
+    node.each(function (d) {
+      const id = String(d.id);
+      const g = d3.select(this);
+      g.classed("graph-dim", !anyIds.has(id));
+      g.classed("graph-path-anchor", id === aid);
+      g.classed("graph-path-up-node", upIds.has(id) && id !== aid);
+      g.classed("graph-path-down-node", downIds.has(id) && id !== aid);
+      const direct = Number(d.cveCount) > 0;
+      const te = Boolean(d.transitiveExposure);
+      g.classed("graph-path-vuln-direct", anyIds.has(id) && direct);
+      g.classed("graph-path-vuln-transitive", anyIds.has(id) && te && !direct);
+    });
+
+    link.each(function (L) {
+      const ends = linkEndpointIds(L);
+      const el = d3.select(this);
+      if (!ends) {
+        el.classed("graph-dim", true).classed("graph-path-up", false).classed("graph-path-down", false);
+        return;
+      }
+      const inUp = upIds.has(ends.sid) && upIds.has(ends.tid);
+      const inDown = downIds.has(ends.sid) && downIds.has(ends.tid);
+      const hl = inUp || inDown;
+      el.classed("graph-dim", !hl).classed("graph-path-up", inUp).classed("graph-path-down", inDown);
+    });
+  }
+
   const ro = new ResizeObserver(() => {
     ({ w, h } = size());
     svg.attr("viewBox", [0, 0, w, h]);
@@ -454,9 +519,11 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
         .call(zoom.transform, next);
     };
     requestAnimationFrame(() => requestAnimationFrame(applyCenter));
+    setPathHighlight(d);
   }
 
   function destroy() {
+    clearPathHighlight();
     clearPanCursor();
     ro.disconnect();
     d3.select(window)
