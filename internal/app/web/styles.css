@@ -506,14 +506,21 @@ body {
   pointer-events: auto;
 }
 
+/* Legend: same chrome family as .graph-search; pointer-events none so pan/zoom hit the graph. */
 .graph-legend {
+  pointer-events: none;
   margin: 0;
-  padding: 0;
+  padding: 0.4rem 0.55rem;
   max-width: 100%;
+  box-sizing: border-box;
   font-size: 0.78rem;
-  line-height: 1.35;
+  line-height: 1.45;
   color: #8b949e;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  background: rgba(22, 27, 34, 0.92);
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  overflow-wrap: break-word;
 }
 
 .graph-legend-line,
@@ -521,9 +528,30 @@ body {
   margin: 0;
 }
 
+.graph-legend-line + .graph-legend-sub {
+  margin-top: 0.2rem;
+}
+
 .graph-legend-sub {
   font-size: 0.75rem;
+  line-height: 1.4;
   color: #6e7681;
+}
+
+@media (max-width: 520px) {
+  .graph-chrome {
+    max-width: min(calc(100% - 1.3rem), 100%);
+  }
+
+  .graph-legend {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .graph-legend-sub {
+    font-size: 0.72rem;
+  }
 }
 
 .graph-search {

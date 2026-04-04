@@ -17,12 +17,12 @@ import (
 type SBOMJobPhase string
 
 const (
-	SBOMJobPhaseQueued        SBOMJobPhase = "queued"
-	SBOMJobPhaseParsing       SBOMJobPhase = "parsing"
-	SBOMJobPhaseBuilding      SBOMJobPhase = "building"
-	SBOMJobPhaseEnriching     SBOMJobPhase = "enriching"
-	SBOMJobPhaseAggregating   SBOMJobPhase = "aggregating"
-	SBOMJobPhaseDone          SBOMJobPhase = "done"
+	SBOMJobPhaseQueued      SBOMJobPhase = "queued"
+	SBOMJobPhaseParsing     SBOMJobPhase = "parsing"
+	SBOMJobPhaseBuilding    SBOMJobPhase = "building"
+	SBOMJobPhaseEnriching   SBOMJobPhase = "enriching"
+	SBOMJobPhaseAggregating SBOMJobPhase = "aggregating"
+	SBOMJobPhaseDone        SBOMJobPhase = "done"
 )
 
 // SBOMJobStatus is the lifecycle state of a job.
@@ -51,7 +51,7 @@ type sbomJobEntry struct {
 }
 
 var (
-	sbomJobMu    sync.Mutex
+	sbomJobMu   sync.Mutex
 	sbomJobByID = make(map[string]*sbomJobEntry)
 )
 
