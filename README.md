@@ -23,12 +23,22 @@ The goal is simple: make SBOMs easier to understand than a flat list of packages
 
 - Go `1.25+`
 
-### Run from source
+### Run from source (web UI first)
+
+After clone, the fastest way to see the graph is to **serve the UI**. If you omit `-file`, depsee loads the sample SBOM at `testdata/min-sbom.json`.
 
 ```bash
 git clone https://github.com/amvn-rwt/depsee.git
 cd depsee
-go run ./cmd/depsee -file path/to/service.sbom.json
+go run ./cmd/depsee -serve
+```
+
+Open the URL printed in the terminal (default listen address is `:8080`, shown as `http://127.0.0.1:8080/`). The UI and `GET /api/graph` use that same origin.
+
+Use your own CycloneDX file:
+
+```bash
+go run ./cmd/depsee -serve -file path/to/service.sbom.json
 ```
 
 ### Build a binary
@@ -45,49 +55,55 @@ go build -o depsee.exe ./cmd/depsee
 
 ## Quick Start
 
-### CLI mode
-
-Print a basic adjacency list from an SBOM:
+### Web mode (recommended)
 
 ```bash
-go run ./cmd/depsee -file path/to/service.sbom.json
+go run ./cmd/depsee -serve
 ```
 
-### Web mode
-
-Start the local server:
+Then open the URL from the log. With a specific SBOM:
 
 ```bash
 go run ./cmd/depsee -serve -file path/to/service.sbom.json
 ```
 
-Then open:
+Useful endpoints (same host/port as in the log):
 
-- `http://127.0.0.1:8080/`
-- `http://127.0.0.1:8080/api/graph`
+- `/` — graph UI
+- `/api/graph` — JSON graph
 
 ### Skip NVD enrichment
 
-If you want to work offline or avoid network calls:
+Offline or no NVD calls (SBOM `vulnerabilities[]` still applied):
 
 ```bash
+go run ./cmd/depsee -serve -skip-nvd
 go run ./cmd/depsee -serve -file path/to/service.sbom.json -skip-nvd
+```
+
+### CLI mode
+
+Print a basic adjacency list (no HTTP server):
+
+```bash
+go run ./cmd/depsee -file path/to/service.sbom.json
 ```
 
 ## Usage
 
 ```bash
-depsee -file path/to/service.sbom.json
+depsee -serve
 depsee -serve -file path/to/service.sbom.json
+depsee -file path/to/service.sbom.json
 depsee -serve -addr :9090 -file path/to/service.sbom.json
-depsee -serve -file path/to/service.sbom.json -skip-nvd
+depsee -serve -skip-nvd
 ```
 
 ### Flags
 
-- `-file` - path to a CycloneDX JSON SBOM file
+- `-file` - path to a CycloneDX JSON SBOM file (default: `testdata/min-sbom.json`)
 - `-serve` - start the local HTTP server and web UI
-- `-addr` - HTTP listen address for web mode
+- `-addr` - HTTP listen address for web mode (default: `:8080`)
 - `-skip-nvd` - disable NVD enrichment
 
 ## NVD API Key
@@ -147,6 +163,12 @@ go test ./...
 ```
 
 Run the web app locally:
+
+```bash
+go run ./cmd/depsee -serve -skip-nvd
+```
+
+With a custom SBOM:
 
 ```bash
 go run ./cmd/depsee -serve -file path/to/service.sbom.json -skip-nvd
