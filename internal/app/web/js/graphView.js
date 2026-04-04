@@ -113,7 +113,10 @@ export function mountGraph(d3, { container, zoomLevelEl, nodes, links }) {
     .select(container)
     .append("svg")
     .attr("role", "img")
-    .attr("aria-label", "Dependency graph");
+    .attr(
+      "aria-label",
+      "Dependency graph. Arrows from dependent to dependency. Larger dot with icon is the primary app (metadata component)."
+    );
 
   const defs = svg.append("defs");
   const dotStep = 20;
