@@ -48,11 +48,26 @@
                   enterkeyhint="search"
                 />
               </form>
-              <div class="graph-legend" role="note">
-                <p class="graph-legend-line">Arrows: dependent → dependency</p>
-                <p class="graph-legend-sub">
-                  Larger dot with icon = primary app (metadata component)
-                </p>
+              <div class="graph-legend" role="note" aria-label="Graph key">
+                <p class="graph-legend-eyebrow">Graph key</p>
+                <div class="graph-legend-item">
+                  <span class="graph-legend-swatch graph-legend-swatch-arrow" aria-hidden="true">
+                    <span class="graph-legend-arrow-line"></span>
+                    <span class="graph-legend-arrow-head"></span>
+                  </span>
+                  <p class="graph-legend-copy">
+                    <span class="graph-legend-strong">Arrows</span> show
+                    <span class="graph-legend-accent">dependent → dependency</span>
+                  </p>
+                </div>
+                <div class="graph-legend-item">
+                  <span class="graph-legend-swatch graph-legend-swatch-root" aria-hidden="true">
+                    <span class="graph-legend-root-dot"></span>
+                  </span>
+                  <p class="graph-legend-copy">
+                    <span class="graph-legend-strong">Large icon node</span> marks the primary app
+                  </p>
+                </div>
               </div>
             </div>
             <div id="graph" aria-live="polite"></div>
