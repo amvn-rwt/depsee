@@ -13,6 +13,26 @@ The goal is simple: make SBOMs easier to understand than a flat list of packages
 - Compute blast radius, dependent count, severity, and risk score
 - Keep NVD requests rate-limited, retried, and cached in memory
 
+## Screenshots
+
+The web UI runs locally in your browser: dependency graph, path highlighting, and a detail panel per package.
+
+### Overview
+
+![Overview of the depsee dependency graph](depsee/overview.png)
+
+### Interaction
+
+![Screen recording: panning, zooming, and selecting nodes in depsee](depsee/interaction.gif)
+
+### Vulnerability focus
+
+![Graph view with vulnerability path highlighting](depsee/vulnerability-focus.png)
+
+### Package detail
+
+![Package detail panel with CVE and metadata](depsee/package-detail.png)
+
 ## Status
 
 `depsee` is an early-stage project. The core graph pipeline is working, and the web UI is served locally, but the project is still evolving.
